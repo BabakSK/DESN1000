@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Earth dam seepage and piezometers — DESN1000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1F3F4; --panel:#FFFFFF; --ink:#16213A; --ink-2:#4E5A6E; --line:#CBD2DB; --line-soft:#E4E8EE;
+  --water:#2C6BD6; --water-soft:#DCE8FA; --rust:#D9480F; --rust-soft:#FCE6DA; --ok:#1E7F4F; --ok-soft:#DDF3E6;
+  --danger:#B91C1C; --danger-soft:#FBE1E1; --warn:#B45309; --warn-soft:#FDEBD0;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:17px}
+@media (min-width:1500px){html{font-size:18px}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Barlow,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+.sheet{max-width:1400px;margin:0 auto;padding:16px 24px 44px}
+header.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:2px}
+.crumb{font-size:.95rem;color:var(--ink-2)}
+.crumb b{color:var(--ink);font-weight:600}
+nav.jump a,footer.foot a{color:var(--water);text-decoration:none;font-weight:500;margin-left:18px}
+nav.jump a:hover,footer.foot a:hover{text-decoration:underline}
+h1{font-size:2rem;font-weight:600;line-height:1.1;margin:.1em 0 .2em;letter-spacing:-.012em}
+.lead{font-size:1.12rem;color:var(--ink-2);max-width:70ch;margin:0 0 14px}
+.stage{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(330px,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.drawing{padding:6px 6px 4px;position:relative}
+.drawing canvas{width:100%;display:block;cursor:crosshair;touch-action:none;border-radius:2px}
+.hint{font-size:.9rem;color:var(--ink-2);padding:6px 4px 2px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hint .solving{color:var(--water);font-variant-numeric:tabular-nums}
+.controls{padding:14px 16px 4px;max-height:640px;overflow:auto}
+.controls h2,.results h2,.note h2,.report h2{font-size:.95rem;font-weight:600;margin:0 0 8px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.controls h2{margin-top:6px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:center;margin:0 0 8px}
+.ctl label{font-weight:500;font-size:.98rem}
+.ctl .num{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
+.ctl .num input{width:5em;font:inherit;font-weight:600;text-align:right;border:1px solid var(--line);border-radius:3px;padding:1px 6px;color:var(--ink);background:#fff}
+.ctl .num input:focus,button:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.ctl .unit{color:var(--ink-2);font-size:.9rem;min-width:2.2em}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink);margin:0;cursor:pointer;height:22px}
+.ctl.off{opacity:.42}.ctl.off input{pointer-events:none}
+.seg-wrap{display:block;margin:0 0 10px}
+.seg-label{font-weight:500;margin:0 0 5px;font-size:.98rem}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.seg button,.btn{font:inherit;font-weight:500;font-size:.95rem;padding:5px 11px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:3px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.small{padding:3px 9px;font-size:.88rem}
+.btn:disabled{opacity:.45;cursor:default}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.chk{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:.98rem;cursor:pointer}
+.chk input{accent-color:var(--ink);width:16px;height:16px;margin:0}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin:4px 0 8px}
+.results{padding:12px 16px 14px;border-top:1px solid var(--line-soft)}
+.big{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:baseline;font-variant-numeric:tabular-nums}
+.big .sw{width:13px;height:13px;border-radius:2px;display:inline-block;transform:translateY(1px)}
+.big .lab{font-weight:500}
+.big .v{font-size:1.45rem;font-weight:600;text-align:right;white-space:nowrap}
+.big .v small{font-size:.9rem;font-weight:500;color:var(--ink-2);margin-left:4px}
+.c-total{color:var(--ink)} .c-water{color:var(--water)} .c-eff{color:var(--rust)} .c-ok{color:var(--ok)} .c-bad{color:var(--danger)}
+.bg-total{background:var(--ink)} .bg-water{background:var(--water)} .bg-eff{background:var(--rust)}
+.work{margin:10px 0 0;padding:9px 12px;background:var(--paper);border-radius:3px;font-size:.95rem;line-height:1.55;font-variant-numeric:tabular-nums}
+.work div{margin:0 0 2px}
+.eq{font-family:"Times New Roman",Times,"STIX Two Text",serif;font-style:italic;font-size:1.07em}
+.eq sub,.eq sup{font-style:normal;font-size:.72em}
+.status{margin:10px 0 0;padding:9px 12px;border-radius:3px;font-weight:500;background:var(--paper)}
+.status.bad{background:var(--danger-soft);color:var(--danger)}
+.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.good{background:var(--ok-soft);color:var(--ok)}
+.status.info{background:var(--water-soft);color:var(--ink)}
+.below{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.below{grid-template-columns:1fr}}
+.report{padding:14px 18px 12px}
+.note{padding:14px 18px 12px}
+.note ol,.note ul{margin:0;padding-left:1.2em}
+.note li{margin:0 0 8px}
+.note p{margin:0 0 9px}
+.note .ans{color:var(--ink-2)}
+table.t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.93rem}
+table.t th{text-align:left;font-weight:500;color:var(--ink-2);padding:3px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:4px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+table.t td.n,table.t th.n{text-align:right}
+table.t tr.sel td{background:var(--water-soft)}
+table.t td.pass{color:var(--ok);font-weight:600} table.t td.fail{color:var(--danger);font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;color:var(--ink-2);padding:2px 4px 2px}
+.legend i{display:inline-block;width:18px;height:3px;transform:translateY(-3px);margin-right:6px}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
+.legend i.dot{width:8px;height:8px;border-radius:50%;transform:translateY(0)}
+.predict{border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin:0 0 10px;background:#fff}
+.predict .pq{font-weight:500;margin:0 0 8px}
+.predict .popts{display:flex;flex-wrap:wrap;gap:6px}
+.predict .popts button{font:inherit;font-size:.93rem;padding:5px 10px;border:1px solid var(--line);background:#fff;border-radius:3px;cursor:pointer;color:var(--ink)}
+.predict .popts button.sel{border-color:var(--ink);background:var(--paper);font-weight:600}
+.predict .popts button.ans{border-color:var(--ok);background:var(--ok-soft)}
+.predict .pfb{margin:8px 0 0;font-size:.95rem;color:var(--ink-2)}
+.predict .pfb .right{color:var(--ok);font-weight:600}.predict .pfb .wrong{color:var(--danger);font-weight:600}.predict .pfb .lock{font-weight:600;color:var(--ink)}
+.kbd{font-size:.85em;border:1px solid var(--line);border-radius:3px;padding:0 5px;background:#fff}
+footer.foot{display:flex;justify-content:space-between;margin-top:22px;padding-top:12px;border-top:1px solid var(--line);font-size:.95rem}
+footer.foot a{margin:0}
+.checks{list-style:none;padding:0;margin:8px 0}
+.checks li{display:flex;gap:8px;align-items:baseline;margin:0 0 5px;font-size:.95rem}
+.checks li::before{content:"";width:12px;height:12px;border-radius:50%;flex:none;transform:translateY(1px);background:var(--line)}
+.checks li.pass::before{background:var(--ok)}.checks li.fail::before{background:var(--danger)}
+.score{font-size:1.5rem;font-weight:600;margin:4px 0}
+.muted{color:var(--ink-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin:16px 0}
+.card{display:block;text-decoration:none;color:inherit;padding:16px 18px 14px}
+.card:hover{border-color:var(--ink)}
+.card h2{font-size:1.3rem;font-weight:600;margin:2px 0 6px}
+.card p{margin:0 0 8px;color:var(--ink-2)}
+.card .go{font-weight:600;color:var(--water)}
+.card .go::after{content:" →"}
+.card .n{font-size:.9rem;color:var(--ink-2)}
+.card canvas{width:100%;display:block;border:1px solid var(--line-soft);border-radius:3px;margin:0 0 10px}
+
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 4px 2px}
+.strip .sv{font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.strip .sv small{font-size:.8rem;font-weight:500;color:var(--ink-2)}
+.strip .sl{font-size:.82rem;color:var(--ink-2)}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+<header class="top">
+  <div class="crumb"><b>DESN1000</b> · Earth dam water flow and piezometers</div>
+  <nav class="jump"></nav>
+</header>
+<h1>Where does the water go inside a dam?</h1>
+<p class="lead">The section below is solved live: Laplace's equation on a grid, free surface included. Drag the reservoir, plant piezometers anywhere by clicking, add a core or a drain, and watch the flow net, the phreatic line and the seepage quantity re-solve in front of the class.</p>
+
+<div class="stage">
+  <div class="panel drawing">
+    <canvas id="fig" aria-label="Cross-section of an earth dam with flow net, phreatic surface, water particles and piezometers"></canvas>
+    <div class="strip" id="strip"></div>
+    <div class="hint"><span id="hintText">Click inside the dam or foundation to plant a piezometer · drag it to move · double-click to remove · drag the ▤ tabs to change the water levels</span><span class="solving" id="solveState"></span></div>
+    <div class="legend"><span><i style="background:#16213A"></i>equipotential (equal total head)</span><span><i style="background:#2C6BD6"></i>flow line</span><span><i style="background:#2C6BD6;height:4px"></i>phreatic surface</span><span><i style="background:#B91C1C;height:4px"></i>seepage face</span><span><i class="dot" style="background:#2C6BD6"></i>water (speeded up)</span></div>
+  </div>
+  <div class="panel">
+    <div class="controls" id="ctls"></div>
+    <div class="results" id="results"></div>
+  </div>
+</div>
+
+<div class="below">
+  <div class="panel report" id="piezoPanel"></div>
+  <div class="panel report" id="challenge"></div>
+</div>
+
+<div class="below">
+  <div class="panel note">
+    <h2>Ask the room first, then test it</h2>
+    <div id="predicts"></div>
+    <p class="muted">Each question: hands up for A, B or C, lock in the majority, then press the button. The page sets up the test and reveals the answer.</p>
+  </div>
+  <div class="panel note">
+    <h2>Why a dam engineer lives with piezometers</h2>
+    <p><strong>The instrument.</strong> A standpipe piezometer is a tube with a porous tip. Water rises in it to the total head at the tip, and the pressure head is simply the height of water above the tip. The tubes drawn here are exactly that. The Svartevann dam on the slides has dozens of them in its core, read for decades.</p>
+    <p><strong>The rule.</strong> Piezometer readings should follow the reservoir. A reading that rises while the reservoir does not, or a tube that suddenly runs clear then muddy, means water is finding a new path: internal erosion, the failure mode that destroyed the Teton Dam in Idaho in 1976 on its first filling, eleven people died. Australian dam owners read their piezometers weekly to monthly under ANCOLD guidelines and compare each one against its expected range.</p>
+    <p><strong>The design.</strong> Everything in the panel on the right is a real design choice: a clay core to cut the seepage, a chimney drain with a filter to catch the water before it reaches the downstream face, a cut-off in the foundation, flatter slopes. The flow net is the drawing engineers used for this before computers, and the number of flow channels in it is still the quickest check of a computer result.</p>
+  </div>
+</div>
+<footer class="foot"></footer>
+</div>
+
+<script>
+/* lib.js — shared code for the seepage examples (DESN1000 guest lecture)
+   Canvas drawing helpers, UI controls, a 2-D finite-volume seepage solver with a free surface,
+   marching squares for flow nets, water particles, and a prediction ("clicker") widget. */
+'use strict';
+const GW = 9.81;
+const C = { ink: '#16213A', ink2: '#4E5A6E', line: '#CBD2DB', lineSoft: '#E4E8EE', water: '#2C6BD6', waterSoft: '#DCE8FA',
+  rust: '#D9480F', rustSoft: '#FCE6DA', sand: '#EAD08E', sandDeep: '#D9B65F', clay: '#C9A07C', clayDeep: '#A97A54',
+  gravel: '#D3CDBF', silt: '#DED2B6', concrete: '#C9CFD6', rock: '#B9B3A8', danger: '#B91C1C', dangerSoft: '#FBE1E1',
+  grain: '#E0A93A', grainEdge: '#8A6A22', paper: '#F1F3F4', ok: '#1E7F4F', okSoft: '#DDF3E6' };
+const $ = (s, r = document) => r.querySelector(s);
+const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sci = (v, d = 1) => { if (!(v > 0)) return '0'; const e = Math.floor(Math.log10(v)); let m = v / 10 ** e; if (m >= 9.95) { m = 1; return `1×10<sup>${e + 1}</sup>`; } return `${fmt(m, d)}×10<sup>${e}</sup>`; };
+const sciPlain = (v, d = 1) => { if (!(v > 0)) return '0'; const e = Math.floor(Math.log10(v)); const m = v / 10 ** e; return `${fmt(m, d)}e${e}`; };
+function timeLabel(sec) {
+  const Y = 365.25 * 86400;
+  if (!Number.isFinite(sec)) return 'never'; if (sec < 1) return `${fmt(sec, 2)} s`;
+  if (sec < 90) return `${fmt(sec, 0)} s`; if (sec < 5400) return `${fmt(sec / 60, 1)} min`;
+  if (sec < 172800) return `${fmt(sec / 3600, 1)} hours`; if (sec < 5e6) return `${fmt(sec / 86400, 1)} days`;
+  if (sec < 2 * Y) return `${fmt(sec / 86400 / 30.44, 1)} months`; if (sec < 1e3 * Y) return `${fmt(sec / Y, sec < 20 * Y ? 1 : 0)} years`;
+  if (sec < 1e6 * Y) return `${fmt(sec / Y / 1e3, 0)},000 years`; return `${fmt(sec / Y / 1e6, 1)} million years`;
+}
+function clockLabel(sec) { // stopwatch reading in natural units
+  if (!Number.isFinite(sec) || sec < 0) return '–';
+  if (sec < 60) return `${fmt(sec, 1)} s`;
+  if (sec < 3600) { const m = Math.floor(sec / 60), s = Math.floor(sec - 60 * m); return `${m} min ${String(s).padStart(2, '0')} s`; }
+  if (sec < 86400) { const h = Math.floor(sec / 3600), m = Math.floor((sec - 3600 * h) / 60); return `${h} h ${String(m).padStart(2, '0')} min`; }
+  const d = sec / 86400; return `${fmt(d, d < 10 ? 1 : 0)} days`;
+}
+function volLabel(m3) { // per second flows
+  const L = m3 * 1000;
+  if (L >= 1) return `${fmt(L, L < 10 ? 2 : 1)} L/s`; if (L * 60 >= 1) return `${fmt(L * 60, 1)} L/min`;
+  if (L * 3600 >= 1) return `${fmt(L * 3600, 1)} L/hour`; if (L * 86400 >= 0.1) return `${fmt(L * 86400, 1)} L/day`;
+  return `${fmt(L * 86400 * 365.25, 2)} L/year`;
+}
+
+/* ---------- DOM helpers ---------- */
+function dom(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'html') e.innerHTML = v; else if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }
+  for (const c of children) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  return e;
+}
+/* slider + typed number. o = {id, label(html), min, max, step, value, unit, onInput, log(false), digits} */
+function control(parent, o) {
+  const wrap = dom('div', { class: 'ctl' });
+  const lab = dom('label', { for: o.id + '-n', html: o.label });
+  const num = dom('input', { type: 'number', id: o.id + '-n', min: o.min, max: o.max, step: o.step, value: o.value });
+  const unit = dom('span', { class: 'unit', html: o.unit || '' });
+  const range = dom('input', { type: 'range', id: o.id, min: o.min, max: o.max, step: o.step, value: o.value });
+  wrap.append(lab, dom('span', { class: 'num' }, [num, unit]), range);
+  parent.appendChild(wrap);
+  let v = +o.value;
+  const api = {
+    get: () => v,
+    set: (nv, fire = true) => { v = clamp(+nv, +range.min, +range.max); range.value = v; num.value = v; if (fire && o.onInput) o.onInput(v); },
+    el: wrap,
+    enable: on => { wrap.classList.toggle('off', !on); range.disabled = !on; num.disabled = !on; },
+    setRange: (min, max) => { range.min = min; range.max = max; num.min = min; num.max = max; if (v < min || v > max) api.set(clamp(v, min, max)); },
+  };
+  range.addEventListener('input', () => api.set(range.value));
+  num.addEventListener('change', () => api.set(num.value));
+  num.addEventListener('keydown', e => { if (e.key === 'Enter') api.set(num.value); });
+  return api;
+}
+function segmented(parent, o) {
+  const wrap = dom('div', { class: 'ctl seg-wrap' });
+  if (o.label) wrap.appendChild(dom('div', { class: 'seg-label', html: o.label }));
+  const row = dom('div', { class: 'seg' }); wrap.appendChild(row); parent.appendChild(wrap);
+  let v = o.value;
+  const btns = o.options.map(op => { const b = dom('button', { type: 'button', html: op.label, 'aria-pressed': op.value === v ? 'true' : 'false' }); b.addEventListener('click', () => api.set(op.value)); row.appendChild(b); return [op.value, b]; });
+  const api = { get: () => v, set: (nv, fire = true) => { v = nv; btns.forEach(([val, b]) => b.setAttribute('aria-pressed', val === v ? 'true' : 'false')); if (fire && o.onInput) o.onInput(v); }, el: wrap };
+  return api;
+}
+function checkbox(parent, o) {
+  const id = o.id; const inp = dom('input', { type: 'checkbox', id });
+  inp.checked = !!o.value;
+  const wrap = dom('label', { class: 'chk', for: id }, [inp, dom('span', { html: o.label })]);
+  parent.appendChild(wrap);
+  inp.addEventListener('change', () => o.onInput && o.onInput(inp.checked));
+  return { get: () => inp.checked, set: (v, fire = true) => { inp.checked = v; if (fire && o.onInput) o.onInput(v); }, el: wrap };
+}
+function button(parent, label, onClick, cls = 'btn') { const b = dom('button', { type: 'button', class: cls, html: label, onclick: onClick }); parent.appendChild(b); return b; }
+
+/* Prediction widget: ask the room, then test. o = {q, options:[..], answer:index, explain, setup(optional fn)} */
+function predict(parent, o) {
+  const box = dom('div', { class: 'predict' });
+  box.appendChild(dom('div', { class: 'pq', html: o.q }));
+  const row = dom('div', { class: 'popts' });
+  const fb = dom('div', { class: 'pfb' });
+  let chosen = null;
+  o.options.forEach((label, i) => {
+    const b = dom('button', { type: 'button', html: label });
+    b.addEventListener('click', () => {
+      chosen = i; row.querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+      fb.innerHTML = `<span class="lock">Locked in.</span> ${o.setup ? 'Now test it: ' : ''}<button type="button" class="btn small">${o.setup ? 'Set it up and reveal' : 'Reveal'}</button>`;
+      fb.querySelector('button').addEventListener('click', () => {
+        if (o.setup) o.setup();
+        const ok = chosen === o.answer;
+        fb.innerHTML = `<span class="${ok ? 'right' : 'wrong'}">${ok ? 'Correct.' : 'Not this time.'}</span> ${o.explain}`;
+        row.querySelectorAll('button').forEach((x, k) => { if (k === o.answer) x.classList.add('ans'); });
+      });
+    });
+    row.appendChild(b);
+  });
+  box.append(row, fb); parent.appendChild(box); return box;
+}
+
+const EXAMPLES = [
+  ['index.html', 'Overview'],
+  ['01-flow-and-effective-stress.html', '1. Flow and effective stress'],
+  ['02-darcy-lab.html', "2. Darcy's law: the permeameter lab"],
+  ['03-earth-dam.html', '3. Earth dam seepage and piezometers'],
+];
+function buildNav(n) {
+  const top = $('nav.jump'), foot = $('footer.foot');
+  if (top) top.innerHTML = `<a href="index.html">Overview</a>` + (n < 3 ? `<a href="${EXAMPLES[n + 1][0]}">Next example</a>` : '');
+  if (foot) foot.innerHTML = (n > 1 ? `<a href="${EXAMPLES[n - 1][0]}">Previous: ${EXAMPLES[n - 1][1]}</a>` : `<a href="index.html">Overview</a>`) +
+    (n < 3 ? `<a href="${EXAMPLES[n + 1][0]}">Next: ${EXAMPLES[n + 1][1]}</a>` : `<span>End of examples</span>`);
+}
+
+/* ---------- Canvas helpers ---------- */
+function makeCanvas(canvas, W, H) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.width = '100%'; canvas.style.aspectRatio = `${W} / ${H}`; canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.W = W; ctx.H = H;
+  return ctx;
+}
+function canvasPoint(canvas, ev, W) { const r = canvas.getBoundingClientRect(); const s = W / r.width; return [(ev.clientX - r.left) * s, (ev.clientY - r.top) * s]; }
+const FONT = 'Barlow, "Segoe UI", system-ui, sans-serif';
+const MATHFONT = '"Times New Roman", Times, serif';
+const _patterns = new WeakMap();
+function pattern(ctx, name) {
+  let m = _patterns.get(ctx); if (!m) { m = new Map(); _patterns.set(ctx, m); }
+  if (m.has(name)) return m.get(name);
+  const c = document.createElement('canvas'); const sz = name === 'rock' ? 10 : 12; c.width = sz; c.height = sz; const g = c.getContext('2d');
+  const dot = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  switch (name) {
+    case 'sand': g.fillStyle = C.sand; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, C.sandDeep); dot(9, 7, 1, C.sandDeep); dot(5, 10, 0.8, C.sandDeep); break;
+    case 'sandwet': g.fillStyle = '#D9C688'; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, '#B49A4F'); dot(9, 7, 1, '#B49A4F'); dot(5, 10, 0.8, '#B49A4F'); break;
+    case 'clay': g.fillStyle = C.clay; g.fillRect(0, 0, sz, sz); g.strokeStyle = C.clayDeep; g.lineWidth = 1; g.beginPath(); g.moveTo(1, 3.5); g.lineTo(6, 3.5); g.moveTo(6, 9.5); g.lineTo(11, 9.5); g.stroke(); break;
+    case 'silt': g.fillStyle = C.silt; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#B8A878'; g.beginPath(); g.moveTo(1, 4.5); g.lineTo(4, 4.5); g.moveTo(7, 9.5); g.lineTo(10, 9.5); g.stroke(); dot(9, 3, 0.9, '#B8A878'); break;
+    case 'gravel': g.fillStyle = C.gravel; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#8F8778'; g.lineWidth = 1; g.beginPath(); g.arc(3.5, 3.5, 2.2, 0, 7); g.moveTo(11.5, 8.5); g.arc(9.5, 8.5, 2, 0, 7); g.stroke(); break;
+    case 'drain': g.fillStyle = '#E4E0D4'; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#8F8778'; g.lineWidth = 1; g.beginPath(); g.arc(3.5, 3.5, 2.2, 0, 7); g.moveTo(11.5, 8.5); g.arc(9.5, 8.5, 2, 0, 7); g.stroke(); break;
+    case 'rock': g.fillStyle = C.rock; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#7C766B'; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 12); g.lineTo(12, -2); g.moveTo(3, 12); g.lineTo(12, 3); g.moveTo(-2, 7); g.lineTo(7, -2); g.stroke(); break;
+    case 'concrete': g.fillStyle = C.concrete; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, '#7F8A99'); dot(9, 8, 1.2, '#7F8A99'); g.strokeStyle = '#7F8A99'; g.beginPath(); g.moveTo(5, 9); g.lineTo(7, 11); g.lineTo(3, 11); g.closePath(); g.stroke(); break;
+    case 'water': g.fillStyle = C.waterSoft; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#9DB8EA'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, 6); g.quadraticCurveTo(3, 3, 6, 6); g.quadraticCurveTo(9, 9, 12, 6); g.stroke(); break;
+  }
+  const p = ctx.createPattern(c, 'repeat'); m.set(name, p); return p;
+}
+/* rich text: _{sub}, ^{sup}, *italic math*; opts: size, weight, color, align (left|center|right), base (alphabetic|middle|top), font */
+function measureRich(ctx, s, size, weight, font) {
+  const toks = tokenize(s); let w = 0;
+  for (const t of toks) { ctx.font = `${t.italic ? 'italic ' : ''}${weight} ${t.small ? size * 0.72 : size}px ${t.italic ? MATHFONT : font}`; w += ctx.measureText(t.text).width; }
+  return w;
+}
+function tokenize(s) {
+  const out = []; let italic = false; let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '*') { italic = !italic; i++; continue; }
+    if ((ch === '_' || ch === '^') && s[i + 1] === '{') { const j = s.indexOf('}', i + 2); out.push({ text: s.slice(i + 2, j), small: true, sub: ch === '_', italic: false }); i = j + 1; continue; }
+    let j = i; while (j < s.length && s[j] !== '*' && !((s[j] === '_' || s[j] === '^') && s[j + 1] === '{')) j++;
+    out.push({ text: s.slice(i, j), italic }); i = j;
+  }
+  return out;
+}
+function text(ctx, x, y, s, o = {}) {
+  const size = o.size || 13, weight = o.weight || 500, font = o.font || FONT, align = o.align || 'left';
+  const w = measureRich(ctx, s, size, weight, font);
+  let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+  ctx.textAlign = 'left'; ctx.textBaseline = o.base || 'alphabetic'; ctx.fillStyle = o.color || C.ink;
+  for (const t of tokenize(s)) {
+    const sz = t.small ? size * 0.72 : size;
+    ctx.font = `${t.italic ? 'italic ' : ''}${weight} ${sz}px ${t.italic ? MATHFONT : font}`;
+    const dy = t.small ? (t.sub ? size * 0.22 : -size * 0.38) : 0;
+    ctx.fillText(t.text, cx, y + dy); cx += ctx.measureText(t.text).width;
+  }
+  return w;
+}
+function tag(ctx, x, y, s, o = {}) { // text with a white backing box; y is the baseline
+  const size = o.size || 12, weight = o.weight || 500, align = o.align || 'left';
+  const w = measureRich(ctx, s, size, weight, o.font || FONT), h = size + 6, pad = 4;
+  const bx = align === 'center' ? x - w / 2 - pad : align === 'right' ? x - w - pad : x - pad;
+  ctx.fillStyle = o.bg || 'rgba(255,255,255,0.92)'; ctx.fillRect(bx, y - size - 1, w + 2 * pad, h);
+  if (o.border) { ctx.strokeStyle = o.border; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, y - size - 0.5, w + 2 * pad, h); }
+  text(ctx, x, y, s, o);
+  return w;
+}
+function arrow(ctx, x1, y1, x2, y2, o = {}) {
+  const col = o.color || C.ink, lw = o.width || 1.5, hd = o.head || 7;
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.setLineDash(o.dash || []);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - hd * 0.6 * Math.cos(a), y2 - hd * 0.6 * Math.sin(a)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - hd * Math.cos(a - 0.4), y2 - hd * Math.sin(a - 0.4)); ctx.lineTo(x2 - hd * Math.cos(a + 0.4), y2 - hd * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+}
+function dimV(ctx, x, y1, y2, label, o = {}) { // vertical dimension between y1,y2 at x; label to the right (or left)
+  const col = o.color || C.ink2;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+  [y1, y2].forEach(y => { ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.stroke(); });
+  if (Math.abs(y2 - y1) > 14) { arrow(ctx, x, (y1 + y2) / 2, x, y1, { color: col, width: 1, head: 6 }); arrow(ctx, x, (y1 + y2) / 2, x, y2, { color: col, width: 1, head: 6 }); }
+  if (label) tag(ctx, x + (o.side === 'left' ? -7 : 7), (y1 + y2) / 2 + 4, label, { size: o.size || 12, color: col, align: o.side === 'left' ? 'right' : 'left' });
+}
+function dimH(ctx, x1, x2, y, label, o = {}) {
+  const col = o.color || C.ink2;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  [x1, x2].forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke(); });
+  if (Math.abs(x2 - x1) > 14) { arrow(ctx, (x1 + x2) / 2, y, x1, y, { color: col, width: 1, head: 6 }); arrow(ctx, (x1 + x2) / 2, y, x2, y, { color: col, width: 1, head: 6 }); }
+  if (label) tag(ctx, (x1 + x2) / 2, y + (o.below ? 16 : -6), label, { size: o.size || 12, color: col, align: 'center' });
+}
+function wtSymbol(ctx, x, y, col = C.water) { // ▽ with two lines, on a water surface at y
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x - 7, y - 10); ctx.lineTo(x + 7, y - 10); ctx.lineTo(x, y); ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 5, y + 3); ctx.lineTo(x + 5, y + 3); ctx.moveTo(x - 3, y + 6); ctx.lineTo(x + 3, y + 6); ctx.stroke();
+}
+function standpipe(ctx, x, yTip, yTop, yWater, o = {}) { // a piezometer tube; canvas coords, y down
+  const w = o.width || 7;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - w / 2, yTop, w, yTip - yTop);
+  if (yWater !== null && yWater < yTip) { ctx.fillStyle = o.waterColor || C.water; ctx.fillRect(x - w / 2 + 1, Math.max(yWater, yTop), w - 2, yTip - Math.max(yWater, yTop)); }
+  ctx.strokeStyle = o.color || C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x - w / 2, yTop, w, yTip - yTop);
+  // porous tip
+  ctx.fillStyle = o.color || C.ink; ctx.beginPath(); ctx.arc(x, yTip, w * 0.65, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, yTip, w * 0.3, 0, 7); ctx.fill();
+  if (yWater !== null && yWater < yTip && yWater >= yTop) { ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - w, yWater); ctx.lineTo(x + w, yWater); ctx.stroke(); }
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function polygon(ctx, pts) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
+function pointInPoly(pts, x, y) { let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside; } return inside; }
+
+/* Simple x-y plot on canvas. o = {x,y,w,h, xmin,xmax, ymin,ymax, yDown:false, xlabel, ylabel, series:[{pts:[[x,y]..], color, width, dash}], xTicks, yTicks, xfmt, yfmt} */
+function plot(ctx, o) {
+  const { x, y, w, h } = o;
+  const sx = v => x + (v - o.xmin) / (o.xmax - o.xmin) * w;
+  const sy = v => o.yDown ? y + (v - o.ymin) / (o.ymax - o.ymin) * h : y + h - (v - o.ymin) / (o.ymax - o.ymin) * h;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = C.lineSoft; ctx.lineWidth = 1;
+  const xt = o.xTicks || niceTicks(o.xmin, o.xmax, 5), yt = o.yTicks || niceTicks(o.ymin, o.ymax, 5);
+  xt.forEach(v => { ctx.beginPath(); ctx.moveTo(sx(v), y); ctx.lineTo(sx(v), y + h); ctx.stroke(); text(ctx, sx(v), y + h + 14, o.xfmt ? o.xfmt(v) : fmt(v, decimalsFor(xt)), { size: 11, align: 'center', color: C.ink2 }); });
+  yt.forEach(v => { ctx.beginPath(); ctx.moveTo(x, sy(v)); ctx.lineTo(x + w, sy(v)); ctx.stroke(); text(ctx, x - 5, sy(v) + 4, o.yfmt ? o.yfmt(v) : fmt(v, decimalsFor(yt)), { size: 11, align: 'right', color: C.ink2 }); });
+  if (o.xmin < 0 && o.xmax > 0) { ctx.strokeStyle = '#9AA3B0'; ctx.beginPath(); ctx.moveTo(sx(0), y); ctx.lineTo(sx(0), y + h); ctx.stroke(); }
+  ctx.strokeStyle = C.line; ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  if (o.xlabel) text(ctx, x + w / 2, y + h + 30, o.xlabel, { size: 12, align: 'center', color: C.ink2 });
+  if (o.ylabel) text(ctx, x, y - 8, o.ylabel, { size: 12, color: C.ink2 });
+  ctx.save(); ctx.beginPath(); ctx.rect(x - 1, y - 1, w + 2, h + 2); ctx.clip();
+  (o.series || []).forEach(s => {
+    if (!s.pts.length) return;
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 2.5; ctx.setLineDash(s.dash ? [5, 4] : []); ctx.lineJoin = 'round';
+    ctx.beginPath(); s.pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke(); ctx.setLineDash([]);
+    if (s.dots) s.pts.forEach(p => { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), s.dotR || 4, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(); });
+  });
+  ctx.restore();
+  return { sx, sy };
+}
+function niceStep(range, n = 5) { const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), r = raw / p; return (r >= 5 ? 5 : r >= 2 ? 2 : 1) * p; }
+function niceTicks(a, b, n = 5) { const st = niceStep(b - a, n), out = []; for (let v = Math.ceil(a / st - 1e-9) * st; v <= b + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+function decimalsFor(ticks) { const st = ticks.length > 1 ? ticks[1] - ticks[0] : 1; return st >= 1 ? 0 : st >= 0.1 ? 1 : 2; }
+
+/* ---------- 2-D steady seepage solver (finite volume, SOR, free surface by saturation switching) ---------- */
+const T_ROCK = 0, T_SOIL = 1, T_FIXED = 2, T_AIR = 3;
+class Seepage {
+  constructor(nx, ny, dx, x0, y0) {
+    this.nx = nx; this.ny = ny; this.dx = dx; this.x0 = x0; this.y0 = y0;
+    const N = nx * ny;
+    this.k = new Float64Array(N); this.type = new Uint8Array(N).fill(T_AIR); this.hfix = new Float64Array(N);
+    this.h = new Float64Array(N); this.S = new Float64Array(N).fill(1); this.seep = new Uint8Array(N); this.mat = new Uint8Array(N);
+    this.n = new Float64Array(N).fill(0.35); this.vx = new Float64Array(N); this.vy = new Float64Array(N);
+    this.iter = 0; this.change = Infinity; this.hasAir = true; this.freeSurface = true; this.transition = 1.5; this.relax = 0.3; this.floor = 1e-5; this.freezeAfter = 40; this.freezeS = 160;
+  }
+  idx(i, j) { return j * this.nx + i; }
+  xc(i) { return this.x0 + (i + 0.5) * this.dx; }
+  yc(j) { return this.y0 + (j + 0.5) * this.dx; }
+  cell(x, y) { return [Math.floor((x - this.x0) / this.dx), Math.floor((y - this.y0) / this.dx)]; }
+  /* fn(x, y) -> {type, k, mat, hfix, n}. Cells that become soil get an initial head from guess(x,y). */
+  build(fn, guess) {
+    const { nx, ny } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = this.idx(i, j), x = this.xc(i), y = this.yc(j), r = fn(x, y);
+      const wasSoil = this.type[c] === T_SOIL;
+      this.type[c] = r.type; this.k[c] = r.type === T_FIXED ? 1e4 : (r.k || 0); this.mat[c] = r.mat || 0; this.hfix[c] = r.hfix || 0; this.n[c] = r.n || 0.35;
+      if (r.type === T_FIXED) { this.h[c] = r.hfix; this.S[c] = 1; this.seep[c] = 0; }
+      else if (r.type === T_SOIL) { if (!wasSoil) { const gh = guess(x, y); this.h[c] = Number.isFinite(gh) ? gh : y; this.S[c] = 1; this.seep[c] = 0; } }
+      else { this.h[c] = y; this.S[c] = 0; this.seep[c] = 0; }
+    }
+    this.iter = 0; this.change = Infinity; if (this._dS) { this._dS.fill(0); this._rx.fill(this.relax); }
+  }
+  /* one outer iteration: update saturation & seepage faces, then solve the linear system by Jacobi-preconditioned CG */
+  step(cgIters = 150) {
+    const { nx, ny, k, type, h, S, seep } = this; const N = nx * ny;
+    this.updateS(this.relax); if (this.iter < this.freezeAfter) this.updateSeep();
+    if (!this._tl || this._tl.length !== N) { this._tl = new Float64Array(N); this._tr = new Float64Array(N); this._td = new Float64Array(N); this._tu = new Float64Array(N); this._diag = new Float64Array(N); this._b = new Float64Array(N); this._free = new Uint8Array(N); this._r = new Float64Array(N); this._z = new Float64Array(N); this._p = new Float64Array(N); this._Ap = new Float64Array(N); }
+    const tl = this._tl, tr = this._tr, td = this._td, tu = this._tu, diag = this._diag, b = this._b, free = this._free, r = this._r, z = this._z, pp = this._p, Ap = this._Ap;
+    const kk = c => type[c] === T_FIXED ? 1e4 : k[c] * Math.max(S[c], this.floor);
+    const isFree = c => type[c] === T_SOIL && !seep[c] && S[c] > 2 * this.floor;
+    let nfree = 0, kmax = 0;
+    for (let c = 0; c < N; c++) { free[c] = isFree(c) ? 1 : 0; if (type[c] === T_SOIL && k[c] > kmax) kmax = k[c]; }
+    const scale = kmax > 0 ? 1 / kmax : 1;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = j * nx + i; tl[c] = tr[c] = td[c] = tu[c] = 0; diag[c] = 0; b[c] = 0; if (!free[c]) continue; nfree++;
+      const ka = kk(c) * scale; let d = 0, bb = 0;
+      const face = (n, store) => { const t = type[n]; if (!(t === T_SOIL || t === T_FIXED)) return; if (seep[n] && h[n] > h[c]) return; const kb = kk(n) * scale; const T = 2 * ka * kb / (ka + kb); d += T; if (free[n]) store(T); else bb += T * h[n]; };
+      if (i > 0) face(c - 1, T => { tl[c] = T; });
+      if (i < nx - 1) face(c + 1, T => { tr[c] = T; });
+      if (j > 0) face(c - nx, T => { td[c] = T; });
+      if (j < ny - 1) face(c + nx, T => { tu[c] = T; });
+      diag[c] = d; b[c] = bb;
+      if (d === 0) free[c] = 0; // isolated cell
+    }
+    // r = b - A h
+    const matvec = (v, out) => { for (let c = 0; c < N; c++) { if (!free[c]) { out[c] = 0; continue; } let s = diag[c] * v[c]; if (tl[c]) s -= tl[c] * v[c - 1]; if (tr[c]) s -= tr[c] * v[c + 1]; if (td[c]) s -= td[c] * v[c - nx]; if (tu[c]) s -= tu[c] * v[c + nx]; out[c] = s; } };
+    matvec(h, Ap);
+    let rz = 0, bnorm = 0;
+    for (let c = 0; c < N; c++) { if (!free[c]) { r[c] = 0; z[c] = 0; pp[c] = 0; continue; } r[c] = b[c] - Ap[c]; z[c] = r[c] / diag[c]; pp[c] = z[c]; rz += r[c] * z[c]; bnorm = Math.max(bnorm, Math.abs(b[c]) / diag[c]); }
+    const tol = Math.max(1e-10, 1e-7 * Math.max(1, bnorm)); let maxd = 0, it = 0, rmax = Infinity;
+    for (; it < cgIters; it++) {
+      matvec(pp, Ap); let pAp = 0; for (let c = 0; c < N; c++) if (free[c]) pAp += pp[c] * Ap[c];
+      if (pAp <= 0) break; const alpha = rz / pAp; rmax = 0; let rzn = 0;
+      for (let c = 0; c < N; c++) { if (!free[c]) continue; const dh = alpha * pp[c]; h[c] += dh; const ad = S[c] > 0.1 ? Math.abs(dh) : 0; if (ad > maxd) maxd = ad; r[c] -= alpha * Ap[c]; const rr = Math.abs(r[c]) / diag[c]; if (rr > rmax) rmax = rr; z[c] = r[c] / diag[c]; rzn += r[c] * z[c]; }
+      if (rmax < tol) { it++; break; }
+      const beta = rzn / rz; rz = rzn; for (let c = 0; c < N; c++) if (free[c]) pp[c] = z[c] + beta * pp[c];
+    }
+    this.iter += 1; this.cgLast = it; this.change = maxd; this.residual = rmax; return maxd;
+  }
+  updateS(relax = 0.3) {
+    const { nx, ny, type, h, S, dx } = this;
+    if (!this.freeSurface || this.iter >= this.freezeS) return;
+    if (!this._dS || this._dS.length !== S.length) { this._dS = new Float64Array(S.length); this._rx = new Float64Array(S.length).fill(relax); }
+    const dSp = this._dS, rx = this._rx, fl = this.floor, dryLim = 2 * fl; let maxdS = 0;
+    const rl = relax * Math.max(0.03, Math.pow(0.97, this.iter));
+    for (let j = 0; j < ny; j++) { const y = this.yc(j); for (let i = 0; i < nx; i++) { const c = j * nx + i; if (type[c] !== T_SOIL) continue;
+      let p;
+      if (S[c] > dryLim) p = h[c] - y;
+      else { // dry cell: pinned at atmospheric pressure; it re-wets only if a wet neighbour pushes water above it
+        let hn = -Infinity;
+        if (i > 0) { const n = c - 1; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (i < nx - 1) { const n = c + 1; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (j > 0) { const n = c - nx; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (j < ny - 1) { const n = c + nx; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        p = hn === -Infinity ? -1e9 : hn - y - 0.25 * dx;
+      }
+      const St = p >= 0 ? 1 : Math.max(fl, 1 + p / (this.transition * dx)); const d = St - S[c];
+      if (d * dSp[c] < 0) rx[c] = Math.max(0.02, rx[c] * 0.5); else rx[c] = Math.min(rl, rx[c] * 1.15);
+      dSp[c] = d; const step = rx[c] * d; S[c] += step; if (Math.abs(step) > maxdS) maxdS = Math.abs(step);
+      if (S[c] <= dryLim) { S[c] = fl; h[c] = y; }
+    } }
+    this.dS = maxdS;
+  }
+  /* Seepage faces: a soil cell with an exposed (air) face discharges when its head exceeds the head at that face,
+     which is the face elevation or, if a water body sits against it, that water level (this.exitHead(x, y)). */
+  updateSeep() {
+    const { nx, ny, type, h, seep, dx } = this;
+    if (!this.hasAir) return;
+    for (let j = 0; j < ny; j++) { const y = this.yc(j); for (let i = 0; i < nx; i++) {
+      const c = j * nx + i; if (type[c] !== T_SOIL) continue;
+      const airUp = j < ny - 1 && type[c + nx] === T_AIR, airL = i > 0 && type[c - 1] === T_AIR, airR = i < nx - 1 && type[c + 1] === T_AIR;
+      const wet = (i > 0 && type[c - 1] === T_FIXED) || (i < nx - 1 && type[c + 1] === T_FIXED) || (j > 0 && type[c - nx] === T_FIXED) || (j < ny - 1 && type[c + nx] === T_FIXED);
+      if (!(airUp || airL || airR) || wet) { seep[c] = 0; continue; }
+      const yface = (airL || airR) ? y : y + dx / 2; const x = this.xc(i);
+      const hx = this.exitHead ? Math.max(yface, this.exitHead(x, yface)) : yface;
+      if (seep[c]) { let hn = -Infinity; if (i > 0 && type[c - 1] === T_SOIL) hn = Math.max(hn, h[c - 1]); if (i < nx - 1 && type[c + 1] === T_SOIL) hn = Math.max(hn, h[c + 1]); if (j > 0 && type[c - nx] === T_SOIL) hn = Math.max(hn, h[c - nx]); if (j < ny - 1 && type[c + nx] === T_SOIL) hn = Math.max(hn, h[c + nx]);
+        if (hn < hx - 0.02 * dx) { seep[c] = 0; } else h[c] = hx; }
+      else if (this.S[c] > 0.5 && h[c] > hx + 1e-6) { seep[c] = 1; h[c] = hx; this.S[c] = 1; }
+    } }
+  }
+  /* one outer iteration: update saturation & seepage faces, then solve the linear system by Jacobi-preconditioned CG */
+  isDir(c) { return this.type[c] === T_FIXED || this.seep[c] === 1; }
+  cond(a, b) { const ta = this.type[a], tb = this.type[b]; if (!((ta === T_SOIL || ta === T_FIXED) && (tb === T_SOIL || tb === T_FIXED))) return 0; if (this.isDir(a) && this.isDir(b)) return 0; if (this.seep[a] && this.h[a] > this.h[b]) return 0; if (this.seep[b] && this.h[b] > this.h[a]) return 0; const ka = ta === T_FIXED ? 1e4 : this.k[a] * Math.max(this.S[a], this.floor), kb = tb === T_FIXED ? 1e4 : this.k[b] * Math.max(this.S[b], this.floor); return 2 * ka * kb / (ka + kb); }
+  fluxX(i, j) { if (i <= 0 || i >= this.nx) return 0; const a = this.idx(i - 1, j), b = this.idx(i, j); const T = this.cond(a, b); return T ? -T * (this.h[b] - this.h[a]) / this.dx : 0; } // Darcy velocity through the face x = x0 + i dx, +x
+  fluxY(i, j) { if (j <= 0 || j >= this.ny) return 0; const a = this.idx(i, j - 1), b = this.idx(i, j); const T = this.cond(a, b); return T ? -T * (this.h[b] - this.h[a]) / this.dx : 0; }
+  computeVelocities() {
+    const { nx, ny, vx, vy, type, S } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; if (type[c] !== T_SOIL || S[c] < 0.5) { vx[c] = 0; vy[c] = 0; continue; } vx[c] = 0.5 * (this.fluxX(i, j) + this.fluxX(i + 1, j)); vy[c] = 0.5 * (this.fluxY(i, j) + this.fluxY(i, j + 1)); }
+  }
+  velocityAt(x, y) { // Darcy velocity, bilinear between cell centres
+    const fx = (x - this.x0) / this.dx - 0.5, fy = (y - this.y0) / this.dx - 0.5; const i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    let vx = 0, vy = 0, ws = 0;
+    for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) { const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue; const c = this.idx(i, j); const w = (di ? tx : 1 - tx) * (dj ? ty : 1 - ty); vx += w * this.vx[c]; vy += w * this.vy[c]; ws += w; }
+    return ws > 0 ? [vx / ws, vy / ws] : [0, 0];
+  }
+  headAt(x, y) { // bilinear among saturated soil / fixed cells; null if dry
+    const fx = (x - this.x0) / this.dx - 0.5, fy = (y - this.y0) / this.dx - 0.5; const i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    let hs = 0, ws = 0;
+    for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) { const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue; const c = this.idx(i, j); const t = this.type[c]; if (!(t === T_FIXED || (t === T_SOIL && this.S[c] > 0.5))) continue; const w = (di ? tx : 1 - tx) * (dj ? ty : 1 - ty); hs += w * this.h[c]; ws += w; }
+    return ws > 0.3 ? hs / ws : null;
+  }
+  streamFunction() { // psi on corners (nx+1)*(ny+1): flux crossing below the point along a vertical line
+    const { nx, ny, dx } = this; const psi = new Float64Array((nx + 1) * (ny + 1));
+    for (let i = 0; i <= nx; i++) { let acc = 0; for (let j = 0; j < ny; j++) { acc += this.fluxX(i, j) * dx; psi[(j + 1) * (nx + 1) + i] = acc; } }
+    return psi;
+  }
+  totalFlow() { // max |psi| at the top row ~ total seepage per metre (m3/s/m)
+    const psi = this.streamFunction(); let mx = 0; const { nx, ny } = this;
+    for (let i = 0; i <= nx; i++) { const v = Math.abs(psi[ny * (nx + 1) + i]); if (v > mx) mx = v; }
+    return mx;
+  }
+  fixedInflow(pred) { // flow (m3/s/m) entering fixed-head cells satisfying pred(i,j) from soil cells (positive = into the fixed cells)
+    let q = 0; const { nx, ny, dx } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = this.idx(i, j); if (this.type[c] !== T_FIXED || !pred(i, j, c)) continue;
+      if (i > 0 && this.type[c - 1] === T_SOIL) q += this.fluxX(i, j) * dx;        // +x flux into c from left
+      if (i < nx - 1 && this.type[c + 1] === T_SOIL) q -= this.fluxX(i + 1, j) * dx;
+      if (j > 0 && this.type[c - nx] === T_SOIL) q += this.fluxY(i, j) * dx;
+      if (j < ny - 1 && this.type[c + nx] === T_SOIL) q -= this.fluxY(i, j + 1) * dx; }
+    return q;
+  }
+}
+/* marching squares on a node grid: F[j*nx+i]; valid[j*nx+i] truthy; returns segments in node coordinates */
+const MS_CASES = { 1: [[2, 3]], 2: [[1, 2]], 3: [[1, 3]], 4: [[0, 1]], 5: [[0, 3], [1, 2]], 6: [[0, 2]], 7: [[0, 3]], 8: [[0, 3]], 9: [[0, 2]], 10: [[0, 1], [2, 3]], 11: [[0, 1]], 12: [[1, 3]], 13: [[1, 2]], 14: [[2, 3]] };
+function isolines(F, nx, ny, level, valid) {
+  const segs = [];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const ia = j * nx + i, ib = ia + 1, ic = ia + nx + 1, id = ia + nx;
+    if (!(valid[ia] && valid[ib] && valid[ic] && valid[id])) continue;
+    const a = F[ia], b = F[ib], c = F[ic], d = F[id];
+    const code = (a > level ? 8 : 0) | (b > level ? 4 : 0) | (c > level ? 2 : 0) | (d > level ? 1 : 0);
+    if (code === 0 || code === 15) continue;
+    const pt = e => { switch (e) { case 0: return [i + (level - a) / (b - a), j]; case 1: return [i + 1, j + (level - b) / (c - b)]; case 2: return [i + (level - d) / (c - d), j + 1]; default: return [i, j + (level - a) / (d - a)]; } };
+    for (const [e1, e2] of MS_CASES[code]) { const p = pt(e1), q = pt(e2); if (Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(q[0]) && Number.isFinite(q[1])) segs.push([p[0], p[1], q[0], q[1]]); }
+  }
+  return segs;
+}
+/* Water particles advected by the pore velocity. */
+class Particles {
+  constructor(n) { this.n = n; this.p = []; this.age = []; }
+  seed(seep, k = 1) {
+    const cells = []; for (let j = 0; j < seep.ny; j++) for (let i = 0; i < seep.nx; i++) { const c = seep.idx(i, j); if (seep.type[c] === T_SOIL && seep.S[c] > 0.7 && Math.hypot(seep.vx[c], seep.vy[c]) > 1e-12) cells.push(c); }
+    this.cells = cells;
+    for (let m = 0; m < k; m++) { if (!cells.length) return; const c = cells[Math.floor(Math.random() * cells.length)]; const i = c % seep.nx, j = Math.floor(c / seep.nx); this.p.push([seep.xc(i) + (Math.random() - 0.5) * seep.dx, seep.yc(j) + (Math.random() - 0.5) * seep.dx]); this.age.push(0); }
+  }
+  step(seep, dt, speedup) {
+    if (!this.cells) this.seed(seep, this.n);
+    while (this.p.length < this.n && this.cells && this.cells.length) this.seed(seep, 1);
+    for (let q = this.p.length - 1; q >= 0; q--) {
+      const pt = this.p[q]; const [vx, vy] = seep.velocityAt(pt[0], pt[1]);
+      const [i, j] = seep.cell(pt[0], pt[1]); const inside = i >= 0 && j >= 0 && i < seep.nx && j < seep.ny; const c = inside ? seep.idx(i, j) : -1;
+      const nn = c >= 0 ? seep.n[c] : 0.35;
+      const sp = Math.hypot(vx, vy);
+      if (!inside || seep.type[c] !== T_SOIL || seep.S[c] < 0.5 || sp < 1e-12 || this.age[q] > 4000) { this.p.splice(q, 1); this.age.splice(q, 1); continue; }
+      pt[0] += vx / nn * dt * speedup; pt[1] += vy / nn * dt * speedup; this.age[q]++;
+    }
+  }
+  reset() { this.p = []; this.age = []; this.cells = null; }
+}
+/* typical median pore speed (m/s) to size the animation speed-up */
+function medianSpeed(seep) {
+  const v = []; for (let j = 0; j < seep.ny; j++) for (let i = 0; i < seep.nx; i++) { const c = seep.idx(i, j); if (seep.type[c] === T_SOIL && seep.S[c] > 0.7) { const s = Math.hypot(seep.vx[c], seep.vy[c]) / seep.n[c]; if (s > 1e-12) v.push(s); } }
+  if (!v.length) return 0; v.sort((a, b) => a - b); return v[Math.floor(v.length * 0.6)];
+}
+
+</script>
+<script>
+buildNav(3);
+$('nav.jump').innerHTML = '<a href="index.html">Home</a><a href="effective-stress.html">Flow and effective stress</a><a href="darcy-law.html">Darcy\'s law</a>'; $('footer.foot').innerHTML = '<span>DESN1000 · interactive examples on water in soil</span><a href="index.html">All examples</a>';
+const canvas = $('#fig'), W = 1000, H = 400, ctx = makeCanvas(canvas, W, H);
+const st = { scene: 'earth', Hd: 30, cw: 8, mu: 2.5, md: 2, hr: 26, ht: 1, core: 'none', coreW: 0.4, drain: 'none', Tf: 0, cutoff: 'none', kLog: -5, kfLog: -4, Nd: 14,
+  showNet: true, showPart: true, showSat: true, Ld: 400, Hc: 25, ccut: 'none', cutDepth: 6 };
+const MAT = { shell: 1, core: 2, drain: 3, found: 4 };
+const GAM = { 1: [20, 21, 0.30], 2: [18, 19.5, 0.42], 3: [19, 21, 0.35], 4: [20, 21, 0.35] }; // [moist, saturated, porosity]
+let seep = null, geo = null, piezos = [], drag = null, hover = null, parts = new Particles(160), speedup = 1, lastT = performance.now();
+let derived = null, attempts = [];
+
+/* ---------- geometry ---------- */
+function layout() {
+  const s = st;
+  if (s.scene === 'earth') {
+    const Bw = s.mu * s.Hd + s.cw + s.md * s.Hd, Tf = s.Tf;
+    const dam = [[0, Tf], [s.mu * s.Hd, Tf + s.Hd], [s.mu * s.Hd + s.cw, Tf + s.Hd], [Bw, Tf]];
+    const xc = s.mu * s.Hd + s.cw / 2;
+    const cb = s.coreW * s.Hd + 4, ctop = 4, ytopCore = Tf + s.Hd - 1.5;
+    const core = s.core === 'clay' ? [[xc - cb / 2, Tf], [xc - ctop / 2, ytopCore], [xc + ctop / 2, ytopCore], [xc + cb / 2, Tf]] : null;
+    const drains = [];
+    if (s.drain === 'toe') { const Ld = 0.32 * Bw, hd = 0.2 * s.Hd; drains.push([[Bw - Ld, Tf], [Bw - 0.15 * Ld, Tf + hd], [Bw, Tf]]); }
+    if (s.drain === 'chimney') { const xch = (core ? xc + cb / 2 : xc + 2) + 1.5, wch = Math.max(2, s.Hd * 0.07); drains.push([[xch, Tf], [xch, Tf + 0.85 * s.Hd], [xch + wch, Tf + 0.85 * s.Hd - wch * 0.5], [xch + wch, Tf]]); drains.push([[xch, Tf], [xch, Tf + Math.max(1.5, s.Hd * 0.06)], [Bw - 1, Tf + Math.max(1.5, s.Hd * 0.06)], [Bw, Tf]]); }
+    const Lext = Math.max(12, 0.45 * s.Hd + 1.6 * Tf);
+    const xmin = -Lext, xmax = Bw + Lext, ytop = Tf + s.Hd + 3.5;
+    const xu = y => s.mu * (y - Tf), xd = y => Bw - s.md * (y - Tf);
+    return { kind: 'earth', dam, core, drains, Bw, Tf, xmin, xmax, ytop, xu, xd, xc, cb, crestY: Tf + s.Hd, hr: Tf + s.hr, ht: Tf + s.ht };
+  }
+  const Tf = Math.max(6, s.Tf), Hc = s.Hc, Bc = 6 + 0.8 * Hc;
+  const dam = [[0, Tf], [0, Tf + Hc], [6, Tf + Hc], [Bc, Tf]];
+  const Lext = Math.max(20, 1.8 * Tf);
+  return { kind: 'concrete', dam, core: null, drains: [], Bw: Bc, Tf, xmin: -Lext, xmax: Bc + Lext, ytop: Tf + Hc + 3.5, xu: y => 0, xd: y => 6 + (Bc - 6) * (1 - clamp((y - Tf) / Hc, 0, 1)), xc: Bc / 2, cb: 0, crestY: Tf + Hc, hr: Tf + s.hr, ht: Tf + s.ht };
+}
+function cellType(x, y, g) {
+  const s = st, Tf = g.Tf;
+  if (g.kind === 'earth') {
+    if (y < Tf) { // foundation
+      if (s.cutoff === 'full' && Math.abs(x - g.xc) < seep.dx * 0.55) return { type: T_ROCK };
+      return { type: T_SOIL, k: 10 ** s.kfLog, mat: MAT.found, n: 0.35 };
+    }
+    if (pointInPoly(g.dam, x, y)) {
+      for (const d of g.drains) if (pointInPoly(d, x, y)) return { type: T_SOIL, k: 100 * 10 ** s.kLog, mat: MAT.drain, n: 0.35 };
+      if (g.core && pointInPoly(g.core, x, y)) return { type: T_SOIL, k: 10 ** s.kLog / 1000, mat: MAT.core, n: 0.42 };
+      return { type: T_SOIL, k: 10 ** s.kLog, mat: MAT.shell, n: 0.30 };
+    }
+    if (x < g.xu(y) && y <= g.hr) return { type: T_FIXED, hfix: g.hr };
+    if (x > g.xd(y) && y <= g.ht) return { type: T_FIXED, hfix: g.ht };
+    return { type: T_AIR };
+  }
+  // concrete dam on a sand foundation
+  if (y < Tf) {
+    const xcut = s.ccut === 'heel' ? seep.dx / 2 : s.ccut === 'toe' ? g.Bw - seep.dx / 2 : null; // the first or last cell column under the base
+    if (xcut !== null && Math.abs(x - xcut) < seep.dx * 0.5 && y > Tf - s.cutDepth) return { type: T_ROCK };
+    return { type: T_SOIL, k: 10 ** s.kfLog, mat: MAT.found, n: 0.35 };
+  }
+  if (pointInPoly(g.dam, x, y)) return { type: T_ROCK };
+  if (x < 0 && y <= g.hr) return { type: T_FIXED, hfix: g.hr };
+  if (x > g.xd(y) && y <= g.ht) return { type: T_FIXED, hfix: g.ht };
+  return { type: T_AIR };
+}
+function rebuild(hard = false) {
+  geo = layout();
+  const nx = 176; const dx = (geo.xmax - geo.xmin) / nx; const ny = Math.ceil(geo.ytop / dx);
+  if (hard || !seep || seep.nx !== nx || seep.ny !== ny || Math.abs(seep.dx - dx) > 1e-9 || Math.abs(seep.x0 - geo.xmin) > 1e-9) { seep = new Seepage(nx, ny, dx, geo.xmin, 0); seep.freeSurface = true; seep.hasAir = true; }
+  const g = geo; seep.exitHead = (x, y) => x < g.xc ? g.hr : g.ht;
+  seep.build((x, y) => cellType(x, y, g), (x, y) => g.hr - (g.hr - g.ht) * clamp((x - g.xu(Math.min(y, g.hr))) / (g.Bw * 0.9), 0, 1));
+  seep.hasAir = true; seep.freeSurface = true;
+  parts.reset(); derived = null;
+  piezos = piezos.filter(p => { const [i, j] = seep.cell(p.x, p.y); return i >= 0 && j >= 0 && i < seep.nx && j < seep.ny && seep.type[seep.idx(i, j)] === T_SOIL; });
+}
+/* ---------- view transform ---------- */
+let view = null;
+function computeView() {
+  const g = geo, mL = 48, mR = 24, mT = 30, mB = 72;
+  const sc = Math.min((W - mL - mR) / (g.xmax - g.xmin), (H - mT - mB) / g.ytop);
+  const ox = mL + ((W - mL - mR) - sc * (g.xmax - g.xmin)) / 2 - g.xmin * sc, oy = H - mB;
+  view = { s: sc, X: x => ox + x * sc, Y: y => oy - y * sc, x: X => (X - ox) / sc, y: Y => (oy - Y) / sc };
+}
+/* ---------- derived fields ---------- */
+function compute() {
+  seep.computeVelocities();
+  const { nx, ny } = seep;
+  const psi = seep.streamFunction();
+  const Q = Math.max(0, -seep.fixedInflow((i, j, c) => seep.hfix[c] === geo.hr));
+  const Hh = geo.hr - geo.ht;
+  const kRef = geo.kind === 'concrete' ? 10 ** st.kfLog : st.core === 'clay' ? 10 ** st.kLog / 1000 : 10 ** st.kLog;
+  const dh = Hh / st.Nd, kS = kRef, dpsi = kS * dh, Nf = Q / dpsi;
+  // validity masks
+  const validH = new Uint8Array(nx * ny), pfield = new Float64Array(nx * ny), validP = new Uint8Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; const soil = seep.type[c] === T_SOIL; validH[c] = soil && seep.S[c] > 0.5 ? 1 : 0; validP[c] = soil ? 1 : 0; pfield[c] = seep.h[c] - seep.yc(j); }
+  const validPsi = new Uint8Array((nx + 1) * (ny + 1));
+  for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) { let ok = 1, any = 0; for (let dj = -1; dj <= 0; dj++) for (let di = -1; di <= 0; di++) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= ny) continue; const c = jj * nx + ii; const t = seep.type[c]; if (t === T_AIR || (t === T_SOIL && seep.S[c] <= 0.5)) ok = 0; if (t === T_SOIL && seep.S[c] > 0.5) any = 1; } validPsi[j * (nx + 1) + i] = ok && any ? 1 : 0; }
+  const eq = [], fl = [];
+  for (let m = 1; m < st.Nd; m++) eq.push(isolines(seep.h, nx, ny, geo.ht + m * dh, validH));
+  const nfl = Math.floor(Nf + 1e-6);
+  for (let m = 1; m <= Math.min(nfl, 30); m++) fl.push(isolines(psi, nx + 1, ny + 1, m * dpsi * Math.sign(psi[ny * (nx + 1) + Math.floor(nx / 2)] || 1), validPsi));
+  const phreatic = isolines(pfield, nx, ny, 0, validP);
+  // exit gradient on downstream soil (not drain), seepage face extent
+  let iExit = 0, iExitDrain = 0, faceLo = Infinity, faceHi = -Infinity, seepFace = false; const exitPts = [];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; if (seep.type[c] !== T_SOIL) continue;
+    const x = seep.xc(i), y = seep.yc(j); const downstream = x > geo.xc;
+    const nearTail = (i < nx - 1 && seep.type[c + 1] === T_FIXED && downstream) || (j < ny - 1 && seep.type[c + nx] === T_FIXED && downstream);
+    if (seep.seep[c] || nearTail) { const gi = Math.hypot(seep.vx[c], seep.vy[c]) / (seep.k[c] * Math.max(seep.S[c], 1e-3)); if (seep.mat[c] === MAT.drain) iExitDrain = Math.max(iExitDrain, gi); else if (downstream) { iExit = Math.max(iExit, gi); exitPts.push([x, y]); if (seep.seep[c] && y > geo.ht + 0.01) { seepFace = true; faceLo = Math.min(faceLo, y); faceHi = Math.max(faceHi, y); } } } }
+  const med = medianSpeed(seep);
+  derived = { Q, dh, dpsi, kS, Nf, eq, fl, phreatic, iExit, iExitDrain, seepFace, faceLo, faceHi, exitPts, psi, med };
+  // saturated overlay image
+  if (!derived.img || derived.img.width !== nx) { derived.img = document.createElement('canvas'); derived.img.width = nx; derived.img.height = ny; }
+  const ic = derived.img.getContext('2d'); const id = ic.createImageData(nx, ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; const p = ((ny - 1 - j) * nx + i) * 4; const sat = seep.type[c] === T_SOIL ? clamp(seep.S[c], 0, 1) : 0; id.data[p] = 44; id.data[p + 1] = 107; id.data[p + 2] = 214; id.data[p + 3] = Math.round(115 * sat); }
+  ic.putImageData(id, 0, 0);
+  speedup = med > 0 ? 9 / (med * view.s) : 1;
+}
+/* ---------- piezometer readings ---------- */
+function reading(p) {
+  const h = seep.headAt(p.x, p.y); const [i, j] = seep.cell(p.x, p.y); const c = seep.idx(i, j);
+  // overburden: walk down the column
+  let sig = 0, inWater = false;
+  for (let jj = seep.ny - 1; jj >= j; jj--) { const cc = seep.idx(i, jj); const t = seep.type[cc]; const dz = jj === j ? (seep.yc(jj) + seep.dx / 2 - p.y) : seep.dx;
+    if (t === T_FIXED) { sig += GW * dz; } else if (t === T_SOIL) { const g = GAM[seep.mat[cc]] || GAM[1]; sig += (seep.S[cc] > 0.5 ? g[1] : g[0]) * dz; } else if (t === T_ROCK && geo.kind === 'concrete' && pointInPoly(geo.dam, seep.xc(i), seep.yc(jj))) sig += 24 * dz; }
+  const dry = h === null || h < p.y; const u = dry ? 0 : GW * (h - p.y);
+  return { h, dry, u, sig, eff: sig - u, hp: dry ? 0 : h - p.y, mat: seep.mat[c] };
+}
+/* ---------- drawing ---------- */
+function matPattern(m) { return m === MAT.core ? 'clay' : m === MAT.drain ? 'drain' : m === MAT.found ? 'sand' : 'sandwet'; }
+function draw() {
+  const g = geo, { X, Y, s } = view;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  // rock and foundation
+  ctx.fillStyle = pattern(ctx, 'rock'); ctx.fillRect(X(g.xmin) - 2, Y(0), X(g.xmax) - X(g.xmin) + 4, H - 46 - Y(0));
+  if (g.Tf > 0) { ctx.fillStyle = pattern(ctx, 'sand'); ctx.fillRect(X(g.xmin) - 2, Y(g.Tf), X(g.xmax) - X(g.xmin) + 4, Y(0) - Y(g.Tf)); }
+  // reservoir & tailwater
+  const wpoly = (xEdge, level, side) => { const pts = side === 'L' ? [[g.xmin - 1, g.Tf], [g.xmin - 1, level], [g.xu(level), level], [g.xu(g.Tf), g.Tf]] : [[g.xd(g.Tf), g.Tf], [g.xd(level), level], [g.xmax + 1, level], [g.xmax + 1, g.Tf]]; polygon(ctx, pts.map(p => [X(p[0]), Y(p[1])])); };
+  if (g.hr > g.Tf) { wpoly(null, g.hr, 'L'); ctx.fillStyle = pattern(ctx, 'water'); ctx.fill(); ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(g.xmin) - 2, Y(g.hr)); ctx.lineTo(X(g.xu(g.hr)), Y(g.hr)); ctx.stroke(); }
+  if (g.ht > g.Tf) { wpoly(null, g.ht, 'R'); ctx.fillStyle = pattern(ctx, 'water'); ctx.fill(); ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(g.xd(g.ht)), Y(g.ht)); ctx.lineTo(X(g.xmax) + 2, Y(g.ht)); ctx.stroke(); }
+  // dam body
+  const damPx = g.dam.map(p => [X(p[0]), Y(p[1])]);
+  polygon(ctx, damPx); ctx.fillStyle = g.kind === 'earth' ? pattern(ctx, 'sandwet') : pattern(ctx, 'concrete'); ctx.fill();
+  if (g.core) { polygon(ctx, g.core.map(p => [X(p[0]), Y(p[1])])); ctx.fillStyle = pattern(ctx, 'clay'); ctx.fill(); ctx.strokeStyle = C.clayDeep; ctx.lineWidth = 1; ctx.stroke(); }
+  for (const d of g.drains) { polygon(ctx, d.map(p => [X(p[0]), Y(p[1])])); ctx.fillStyle = pattern(ctx, 'drain'); ctx.fill(); ctx.strokeStyle = '#8F8778'; ctx.lineWidth = 1; ctx.stroke(); }
+  // cut-offs
+  if (g.kind === 'earth' && st.cutoff === 'full' && g.Tf > 0) { ctx.fillStyle = C.ink; ctx.fillRect(X(g.xc) - 2, Y(g.Tf), 4, Y(0) - Y(g.Tf)); }
+  if (g.kind === 'concrete' && st.ccut !== 'none') { const xcut = st.ccut === 'heel' ? seep.dx / 2 : g.Bw - seep.dx / 2; ctx.fillStyle = C.ink; ctx.fillRect(X(xcut) - 2, Y(g.Tf), 4, Y(g.Tf - st.cutDepth) - Y(g.Tf)); }
+  // saturated overlay, clipped to soil
+  if (derived && st.showSat) {
+    ctx.save(); ctx.beginPath();
+    if (g.kind === 'earth') { damPx.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
+    if (g.Tf > 0) ctx.rect(X(g.xmin) - 2, Y(g.Tf), X(g.xmax) - X(g.xmin) + 4, Y(0) - Y(g.Tf));
+    ctx.clip(); ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(derived.img, X(seep.x0), Y(seep.y0 + seep.ny * seep.dx), seep.nx * seep.dx * s, seep.ny * seep.dx * s);
+    ctx.restore();
+  }
+  polygon(ctx, damPx); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(X(g.xmin) - 2, Y(0)); ctx.lineTo(X(g.xmax) + 2, Y(0)); ctx.stroke();
+  if (g.Tf > 0) { ctx.beginPath(); ctx.moveTo(X(g.xmin) - 2, Y(g.Tf)); ctx.lineTo(X(g.xmax) + 2, Y(g.Tf)); ctx.stroke(); }
+  // flow net
+  if (derived && st.showNet) {
+    const segs = (list, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); for (const sg of list) for (const [a, b, c, d] of sg) { ctx.moveTo(a, b); ctx.lineTo(c, d); } ctx.stroke(); };
+    const toPxC = sg => sg.map(([i0, j0, i1, j1]) => [X(seep.xc(i0)), Y(seep.yc(j0)), X(seep.xc(i1)), Y(seep.yc(j1))]);
+    const toPxN = sg => sg.map(([i0, j0, i1, j1]) => [X(seep.x0 + i0 * seep.dx), Y(seep.y0 + j0 * seep.dx), X(seep.x0 + i1 * seep.dx), Y(seep.y0 + j1 * seep.dx)]);
+    segs(derived.fl.map(toPxN), 'rgba(44,107,214,0.85)', 1.2);
+    segs(derived.eq.map(toPxC), 'rgba(22,33,58,0.75)', 1.1);
+  }
+  if (derived) {
+    // phreatic surface
+    ctx.strokeStyle = C.water; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
+    for (const [i0, j0, i1, j1] of derived.phreatic) { ctx.moveTo(X(seep.xc(i0)), Y(seep.yc(j0))); ctx.lineTo(X(seep.xc(i1)), Y(seep.yc(j1))); } ctx.stroke();
+    // seepage face marks
+    if (derived.seepFace) { ctx.fillStyle = C.danger; for (const [x, y] of derived.exitPts) { if (y > g.ht + 0.01) { ctx.beginPath(); ctx.arc(X(x), Y(y), 2.6, 0, 7); ctx.fill(); } } }
+  }
+  // particles
+  if (derived && st.showPart) { ctx.fillStyle = C.water; for (const p of parts.p) { ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 1.7, 0, 7); ctx.fill(); } }
+  // piezometers
+  piezos.forEach((p, k) => {
+    const r = reading(p); const xt = X(p.x), yt = Y(p.y), yTop = Y(g.crestY + 2.2);
+    standpipe(ctx, xt, yt, yTop, r.dry ? null : Y(r.h), { width: 7, color: drag && drag.p === p ? C.rust : C.ink });
+    tag(ctx, xt, yTop - 6, `P${k + 1}${r.dry ? ' dry' : ' ' + fmt(r.h, 1) + ' m'}`, { size: 11, align: 'center', weight: 600, color: r.dry ? C.ink2 : C.water });
+  });
+  // water level handles and labels
+  const handle = (Xh, Yh) => { ctx.fillStyle = '#fff'; ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; roundRect(ctx, Xh - 12, Yh - 8, 24, 16, 3); ctx.fill(); ctx.stroke(); ctx.strokeStyle = C.water; ctx.beginPath(); for (let d = -4; d <= 4; d += 4) { ctx.moveTo(Xh - 6, Yh + d); ctx.lineTo(Xh + 6, Yh + d); } ctx.stroke(); };
+  handle(X(g.xmin) + 14, Y(g.hr)); wtSymbol(ctx, X(g.xmin) + 46, Y(g.hr)); tag(ctx, X(g.xmin) + 58, Y(g.hr) - 4, `reservoir ${fmt(st.hr, 1)} m`, { size: 11, color: C.water, weight: 600 });
+  handle(X(g.xmax) - 14, Y(g.ht)); wtSymbol(ctx, X(g.xmax) - 46, Y(g.ht)); tag(ctx, X(g.xmax) - 58, Y(g.ht) - 4, `tailwater ${fmt(st.ht, 1)} m`, { size: 11, color: C.water, weight: 600, align: 'right' });
+  // annotations
+  tag(ctx, X(g.xmin) + 4, Y(0) + 14, 'datum 0 m: top of rock', { size: 11, color: C.ink2 });
+  if (g.kind === 'earth') { dimV(ctx, X(g.xd(g.Tf)) + 30, Y(g.crestY), Y(g.Tf), `${fmt(st.Hd, 0)} m`, { side: 'right' }); tag(ctx, X(st.mu * st.Hd) - 4, Y(g.crestY) - 8, `crest ${fmt(g.crestY, 1)} m`, { size: 11, align: 'right', color: C.ink2 }); }
+  else { dimV(ctx, X(g.Bw) + 30, Y(g.crestY), Y(g.Tf), `${fmt(st.Hc, 0)} m`, { side: 'right' }); tag(ctx, X(g.Bw * 0.35), Y(g.Tf + st.Hc * 0.72), 'concrete', { size: 12, align: 'center', color: C.ink2 }); }
+  if (g.kind === 'earth') { const lbl = (poly, t, col) => { const cx = poly.reduce((a, p) => a + p[0], 0) / poly.length, cy = poly.reduce((a, p) => a + p[1], 0) / poly.length; tag(ctx, X(cx), Y(cy) + 4, t, { size: 11, align: 'center', color: col }); };
+    if (g.core) lbl(g.core, 'clay core', C.clayDeep); if (st.drain === 'toe') lbl(g.drains[0], 'toe drain', '#5F5A4E'); if (st.drain === 'chimney') tag(ctx, X(g.drains[0][0][0] + 1) + 14, Y(g.Tf + st.Hd * 0.5), 'chimney drain', { size: 11, color: '#5F5A4E' }); }
+  // concrete dam: uplift diagram
+  if (g.kind === 'concrete' && derived) {
+    const jb = seep.cell(0, g.Tf - seep.dx / 2)[1]; const pts = []; let U = 0;
+    for (let i = 0; i < seep.nx; i++) { const x = seep.xc(i); if (x < 0 || x > g.Bw) continue; const c = seep.idx(i, jb); if (seep.type[c] !== T_SOIL) continue; const u = GW * Math.max(0, seep.h[c] - g.Tf); pts.push([x, u]); U += u * seep.dx; }
+    const umax = Math.max(1, ...pts.map(p => p[1])); const sc = (st.Hc * 0.3 * s) / umax;
+    const uAt = x => { let best = pts[0]; for (const q of pts) if (Math.abs(q[0] - x) < Math.abs(best[0] - x)) best = q; return best[1]; };
+    ctx.save(); ctx.beginPath(); ctx.moveTo(X(0), Y(g.Tf)); for (const [x, u] of pts) ctx.lineTo(X(x), Y(g.Tf) - u * sc); ctx.lineTo(X(g.Bw), Y(g.Tf)); ctx.closePath(); ctx.clip();
+    ctx.fillStyle = 'rgba(44,107,214,0.14)'; ctx.fillRect(X(0), Y(g.Tf) - umax * sc - 2, X(g.Bw) - X(0), umax * sc + 4);
+    ctx.strokeStyle = 'rgba(44,107,214,0.5)'; ctx.lineWidth = 1; ctx.beginPath(); for (let xx = X(0) - 60; xx < X(g.Bw) + 10; xx += 7) { ctx.moveTo(xx, Y(g.Tf)); ctx.lineTo(xx + 60, Y(g.Tf) - 60); } ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(X(0), Y(g.Tf)); for (const [x, u] of pts) ctx.lineTo(X(x), Y(g.Tf) - u * sc); ctx.lineTo(X(g.Bw), Y(g.Tf)); ctx.closePath(); ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.stroke();
+    const nArr = Math.max(4, Math.min(9, Math.round(g.Bw / 3))); for (let k = 0; k <= nArr; k++) { const x = 0.6 + (g.Bw - 1.2) * k / nArr; const u = uAt(x); if (u * sc > 9) arrow(ctx, X(x), Y(g.Tf), X(x), Y(g.Tf) - u * sc + 1, { color: C.water, width: 1.2, head: 6 }); }
+    tag(ctx, X(0) + 2, Y(g.Tf) - umax * sc - 10, `uplift pressure on the base, pushing up: U = ${fmt(U, 0)} kN per m`, { size: 11, color: C.water, weight: 600 });
+    if (pts.length) { tag(ctx, X(0) + 4, Y(g.Tf) - pts[0][1] * sc + 14, `${fmt(pts[0][1], 0)} kPa`, { size: 10, color: C.water, weight: 600 }); tag(ctx, X(g.Bw) - 4, Y(g.Tf) - Math.max(pts[pts.length - 1][1] * sc, 16) + 14, `${fmt(pts[pts.length - 1][1], 0)} kPa`, { size: 10, color: C.water, weight: 600, align: 'right' }); }
+    derived.U = U; derived.Wt = 24 * (0.5 * (g.Bw - 6) * st.Hc + 6 * st.Hc); derived.uHeel = pts.length ? pts[0][1] : 0; derived.uToe = pts.length ? pts[pts.length - 1][1] : 0;
+  }
+  // hover probe
+  if (hover && !drag) { const h = seep.headAt(hover.x, hover.y); const [i, j] = seep.cell(hover.x, hover.y); const c = (i >= 0 && j >= 0 && i < seep.nx && j < seep.ny) ? seep.idx(i, j) : -1;
+    if (c >= 0 && seep.type[c] === T_SOIL) { const txt = h === null || h < hover.y ? `probe: dry (above the phreatic surface)` : `probe: h = ${fmt(h, 2)} m,  u = ${fmt(GW * (h - hover.y), 0)} kPa`; tag(ctx, X(hover.x) + 12, Y(hover.y) - 10, txt, { size: 11, color: C.ink, border: C.line }); } }
+  // scale bar & title
+  const bar = 10 * s; ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(g.xmin) + 6, H - 20); ctx.lineTo(X(g.xmin) + 6 + bar, H - 20); ctx.stroke(); [0, bar].forEach(b => { ctx.beginPath(); ctx.moveTo(X(g.xmin) + 6 + b, H - 25); ctx.lineTo(X(g.xmin) + 6 + b, H - 15); ctx.stroke(); }); text(ctx, X(g.xmin) + 12 + bar, H - 16, '10 m', { size: 11, color: C.ink2 });
+  ctx.fillStyle = '#fff'; ctx.fillRect(W - 240, H - 42, 232, 36); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(W - 239.5, H - 41.5, 231, 35);
+  text(ctx, W - 232, H - 27, g.kind === 'earth' ? 'Section through the embankment' : 'Section through a gravity dam on sand', { size: 11, color: C.ink2 });
+  text(ctx, W - 232, H - 13, derived && derived.med > 0 ? `water ×${fmt(speedup / 1000, 0)},000 faster than life; real ${fmt(derived.med * 86400 * 100, 0)} cm per day` : `Solved live on a ${seep.nx} × ${seep.ny} grid, cell ${fmt(seep.dx, 2)} m`, { size: 10, color: C.ink2 });
+  // readout strip
+  strip();
+}
+function strip() {
+  if (!derived) return; const d = derived, g = geo; const perM = d.Q * 60000; const fs = d.iExit > 1e-6 ? 1 / d.iExit : Infinity;
+  const el = $('#strip'); const key = `${perM.toFixed(2)}|${d.Nf.toFixed(1)}|${fs.toFixed(1)}|${d.seepFace}|${g.kind}|${(d.U || 0).toFixed(0)}`;
+  if (el.dataset.key === key) return; el.dataset.key = key;
+  const items = [[`${fmt(perM, perM < 1 ? 2 : 1)} <small>L/min per m</small>`, 'seepage', 'c-water'], [`${fmt(d.Nf, 1)} <small>/ ${st.Nd}</small>`, 'N<sub>f</sub> / N<sub>d</sub>', 'c-total'], [isFinite(fs) ? fmt(fs, 1) : '–', 'piping safety at exit', fs < 3 ? 'c-bad' : 'c-ok']];
+  if (g.kind === 'earth') items.push([d.seepFace ? 'wet' : 'dry', 'downstream face', d.seepFace ? 'c-bad' : 'c-ok']); else items.push([`${fmt(100 * (d.U || 0) / (d.Wt || 1), 0)}<small>%</small>`, 'uplift / weight', 'c-water']);
+  el.innerHTML = items.map(([v, l, cls]) => `<div><div class="sv ${cls}">${v}</div><div class="sl">${l}</div></div>`).join('');
+}
+/* ---------- animation / solver loop ---------- */
+const TOL = () => 3e-5 * Math.max(1, geo.hr - geo.ht);
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  const solving = seep.iter < 4 || (seep.iter < 400 && (seep.change > TOL() || (seep.dS > 2e-3 && seep.iter < seep.freezeS)));
+  if (solving) { seep.step(150); if (seep.iter % 2 === 0 || !derived) compute(); }
+  else if (!derived) compute();
+  $('#solveState').textContent = solving ? `solving… iteration ${seep.iter}` : `converged after ${seep.iter} iterations`;
+  if (st.showPart && derived) parts.step(seep, dt, speedup); else parts.reset();
+  draw();
+  if (!solving && !frame.reported) { frame.reported = true; report(); }
+  if (solving) frame.reported = false;
+  requestAnimationFrame(frame);
+}
+/* ---------- reports ---------- */
+function report() {
+  if (!derived) return; const g = geo, d = derived;
+  const Q = d.Q, perM = Q * 1000 * 60; // L/min per m
+  const total = Q * st.Ld; // m3/s
+  const rows = piezos.map((p, k) => { const r = reading(p); return `<tr><td>P${k + 1}</td><td class="n">${fmt(p.x, 1)}, ${fmt(p.y, 1)}</td><td class="n">${r.dry ? '<span class="muted">dry</span>' : fmt(r.h, 2)}</td><td class="n">${r.dry ? '–' : fmt(r.hp, 2)}</td><td class="n c-water">${fmt(r.u, 0)}</td><td class="n c-total">${fmt(r.sig, 0)}</td><td class="n c-eff">${fmt(r.eff, 0)}</td></tr>`; }).join('');
+  $('#piezoPanel').innerHTML = `<h2>Piezometer readings</h2>
+    ${piezos.length ? `<table class="t"><tr><th>Tube</th><th class="n">tip x, z (m)</th><th class="n">total head <span class="eq">h</span> (m)</th><th class="n">pressure head <span class="eq">h − z</span> (m)</th><th class="n"><span class="eq">u</span> (kPa)</th><th class="n"><span class="eq">σ<sub>v</sub></span> (kPa)</th><th class="n"><span class="eq">σ′<sub>v</sub></span> (kPa)</th></tr>${rows}</table>` : '<p class="muted">No piezometers yet. Click inside the dam or the foundation to plant one.</p>'}
+    <div class="work"><div>Water rises in a standpipe to the total head at its tip: <span class="eq">h = z + u/γ<sub>w</sub></span>, so <span class="eq">u = γ<sub>w</sub>(h − z)</span>.</div><div><span class="eq">σ<sub>v</sub></span> is the weight of everything above the tip (soil at 18–21 kN/m³, water at 9.81); <span class="eq">σ′<sub>v</sub> = σ<sub>v</sub> − u</span> is what the grains carry.</div></div>`;
+  const fs = d.iExit > 1e-6 ? 1.0 / d.iExit : Infinity;
+  const face = d.seepFace ? `<div class="status bad">Water is seeping out of the downstream face between ${fmt(d.faceLo, 1)} and ${fmt(d.faceHi, 1)} m: the slope will soften and start to erode.</div>` : (g.kind === 'earth' ? `<div class="status good">Downstream face is dry. ${st.drain === 'none' ? 'The phreatic surface reaches the tailwater level before the face.' : 'The drain catches the seepage before the face.'}</div>` : '');
+  const fsTxt = !isFinite(fs) ? 'no exposed exit' : fmt(fs, 1);
+  let extra = '';
+  if (g.kind === 'concrete') extra = `<div class="big"><span class="sw bg-water"></span><span class="lab">Uplift on the base <span class="eq">U</span></span><span class="v c-water">${fmt(d.U, 0)}<small>kN/m</small></span><span class="sw bg-total"></span><span class="lab">Weight of the dam <span class="eq">W</span></span><span class="v c-total">${fmt(d.Wt, 0)}<small>kN/m</small></span><span class="sw bg-eff"></span><span class="lab">Uplift as a share of the weight</span><span class="v c-eff">${fmt(100 * d.U / d.Wt, 0)}<small>%</small></span></div>
+    <div class="work"><div>Pore pressure at the heel ${fmt(d.uHeel, 0)} kPa, at the toe ${fmt(d.uToe, 0)} kPa. A cut-off at the heel lengthens the path before the base and lowers the uplift; a cut-off at the toe lowers the exit gradient but raises the uplift.</div></div>`;
+  $('#results').innerHTML = `<h2>Seepage report</h2>
+    <div class="big">
+      <span class="sw bg-water"></span><span class="lab">Seepage per metre of dam</span><span class="v c-water">${fmt(perM, perM < 1 ? 2 : 1)}<small>L/min</small></span>
+      <span class="sw bg-water"></span><span class="lab">Whole dam, ${fmt(st.Ld, 0)} m long</span><span class="v c-water">${volLabel(total).replace(/ (\S+)$/, '<small>$1</small>')}</span>
+      <span class="sw bg-total"></span><span class="lab">Flow net: <span class="eq">N<sub>d</sub></span> = ${st.Nd}, <span class="eq">N<sub>f</sub></span></span><span class="v c-total">${fmt(d.Nf, 1)}</span>
+      <span class="sw bg-eff"></span><span class="lab">Piping safety at the exit <span class="eq">i<sub>cr</sub>/i<sub>exit</sub></span></span><span class="v ${fs < 3 ? 'c-bad' : 'c-ok'}">${fsTxt}</span>
+    </div>
+    ${face}
+    ${extra}
+    <div class="work">
+      <div><span class="eq">q = k·H·N<sub>f</sub>/N<sub>d</sub></span> = ${sci(d.kS)} × ${fmt(g.hr - g.ht, 1)} × ${fmt(d.Nf, 1)} / ${st.Nd} = ${sci(Q, 2)} m³/s per m${g.kind === 'earth' && st.core === 'clay' ? ' (k of the core, where the head is lost)' : ''}</div>
+      <div>Each equipotential drop is <span class="eq">Δh</span> = ${fmt(d.dh, 2)} m; each flow channel carries <span class="eq">Δq = k·Δh</span> = ${sci(d.dpsi, 2)} m³/s. ${g.kind === 'earth' && (st.core === 'clay' || st.Tf > 0) ? 'The net is drawn with squares in the ' + (st.core === 'clay' ? 'core' : 'fill') + '; where k differs the cells stretch into rectangles.' : ''}</div>
+      <div class="muted">Water moves at about ${fmt(d.med * 86400 * 100, 1)} cm per day here; the animation runs ${fmt(speedup / 1e3, 0)},000× faster than life. A drop takes roughly ${timeLabel(g.Bw / Math.max(d.med, 1e-12))} to cross.</div>
+    </div>`;
+  challengeReport();
+}
+function cost() {
+  const g = geo; if (g.kind !== 'earth') return null;
+  const area = 0.5 * (st.mu + st.md) * st.Hd * st.Hd + st.cw * st.Hd;
+  const polyArea = P => { let a = 0; for (let i = 0; i < P.length; i++) { const [x1, y1] = P[i], [x2, y2] = P[(i + 1) % P.length]; a += x1 * y2 - x2 * y1; } return Math.abs(a) / 2; };
+  const coreA = g.core ? polyArea(g.core) : 0, drainA = g.drains.reduce((a, d) => a + polyArea(d), 0);
+  const shellA = area - coreA - drainA;
+  return { area, coreA, drainA, shellA, cost: 28 * shellA + 45 * coreA + 110 * drainA + (st.cutoff === 'full' ? 900 * g.Tf : 0) };
+}
+function challengeReport() {
+  const el = $('#challenge'); if (geo.kind !== 'earth') { el.innerHTML = `<h2>Design challenge</h2><p class="muted">Switch back to the earth dam scene for the design challenge. In this scene, compare uplift and exit gradient with the cut-off at the heel and at the toe.</p>`; return; }
+  const d = derived, c = cost(); const fs = d.iExit > 1e-6 ? 1 / d.iExit : Infinity; const perM = d.Q * 60000;
+  const checks = [[!d.seepFace, 'No water on the downstream face'], [perM <= 1.0, `Seepage no more than 1.0 L/min per metre (now ${fmt(perM, 2)})`], [fs >= 3, `Piping safety at the exit ≥ 3 (now ${isFinite(fs) ? fmt(fs, 1) : 'no exposed exit'})`], [st.mu >= 2.5 && st.md >= 2, 'Slopes no steeper than 2.5:1 upstream and 2:1 downstream (stability)'], [st.hr >= 0.85 * st.Hd, `Reservoir at least 85% of the dam height (now ${fmt(100 * st.hr / st.Hd, 0)}%)`]];
+  const pass = checks.every(x => x[0]);
+  el.innerHTML = `<h2>Design challenge: the cheapest safe dam</h2>
+    <p class="muted">Brief: 30 m of water behind a dam on this foundation. Change slopes, core, drain and cut-off. Fill costs $28/m³, clay core $45/m³, drain gravel with filters $110/m³, a foundation cut-off $900 per metre of depth.</p>
+    <ul class="checks">${checks.map(x => `<li class="${x[0] ? 'pass' : 'fail'}">${x[1]}</li>`).join('')}</ul>
+    <div class="score">$${fmt(c.cost / 1000, 1)}k per metre of dam <span class="muted" style="font-size:.95rem;font-weight:500">(${fmt(c.area, 0)} m³ of fill per metre) — ${pass ? '<span class="c-ok">passes</span>' : '<span class="c-bad">does not pass yet</span>'}</span></div>
+    <div class="btnrow"><button class="btn primary" id="logAttempt" type="button">Log this attempt</button><button class="btn" id="clearAttempts" type="button">Clear</button></div>
+    ${attempts.length ? `<table class="t"><tr><th>#</th><th>Slopes</th><th>Core</th><th>Drain</th><th>Cut-off</th><th class="n">Seepage L/min/m</th><th class="n">Cost $k/m</th><th>Result</th></tr>${attempts.map((a, i) => `<tr class="${a.best ? 'sel' : ''}"><td>${i + 1}</td><td>${a.mu}:1 / ${a.md}:1</td><td>${a.core}</td><td>${a.drain}</td><td>${a.cut}</td><td class="n">${fmt(a.perM, 2)}</td><td class="n">${fmt(a.cost, 1)}</td><td class="${a.pass ? 'pass' : 'fail'}">${a.pass ? 'pass' : 'fail'}</td></tr>`).join('')}</table>` : ''}`;
+  $('#logAttempt').addEventListener('click', () => { attempts.push({ mu: st.mu, md: st.md, core: st.core === 'clay' ? 'clay' : 'none', drain: st.drain, cut: st.cutoff === 'full' ? 'yes' : 'no', perM, cost: c.cost / 1000, pass }); const best = attempts.filter(a => a.pass).sort((a, b) => a.cost - b.cost)[0]; attempts.forEach(a => a.best = a === best); challengeReport(); });
+  $('#clearAttempts').addEventListener('click', () => { attempts = []; challengeReport(); });
+}
+/* ---------- controls ---------- */
+const ctls = $('#ctls'); const c = {};
+const sceneSeg = segmented(ctls, { label: 'Scene', value: 'earth', options: [{ label: 'Earth dam', value: 'earth' }, { label: 'Concrete dam on sand', value: 'concrete' }], onInput: v => { st.scene = v; if (v === 'concrete') { st.Tf = Math.max(st.Tf, 12); c.Tf.set(st.Tf, false); st.hr = Math.min(st.hr, 20); c.hr.set(st.hr, false); } else { if (st.hr > st.Hd - 2) { st.hr = st.Hd - 4; c.hr.set(st.hr, false); } } syncEnable(); rebuild(true); computeView(); } });
+ctls.appendChild(dom('h2', { text: 'Water' }));
+c.hr = control(ctls, { id: 'hr', label: 'Reservoir level above the dam base', min: 0, max: 28, step: 0.5, value: st.hr, unit: 'm', onInput: v => { st.hr = v; rebuild(); } });
+c.ht = control(ctls, { id: 'ht', label: 'Tailwater level above the dam base', min: 0, max: 8, step: 0.5, value: st.ht, unit: 'm', onInput: v => { st.ht = v; rebuild(); } });
+ctls.appendChild(dom('h2', { text: 'Embankment' }));
+c.Hd = control(ctls, { id: 'Hd', label: 'Dam height', min: 15, max: 40, step: 1, value: st.Hd, unit: 'm', onInput: v => { st.Hd = v; c.hr.setRange(0, v - 2); if (st.hr > v - 2) { st.hr = v - 2; } rebuild(true); computeView(); } });
+c.mu = control(ctls, { id: 'mu', label: 'Upstream slope (H : 1)', min: 1.5, max: 4, step: 0.25, value: st.mu, unit: ': 1', onInput: v => { st.mu = v; rebuild(true); computeView(); } });
+c.md = control(ctls, { id: 'md', label: 'Downstream slope (H : 1)', min: 1.5, max: 4, step: 0.25, value: st.md, unit: ': 1', onInput: v => { st.md = v; rebuild(true); computeView(); } });
+c.core = segmented(ctls, { label: 'Core', value: 'none', options: [{ label: 'Homogeneous fill', value: 'none' }, { label: 'Clay core (k ÷ 1000)', value: 'clay' }], onInput: v => { st.core = v; syncEnable(); rebuild(); } });
+c.coreW = control(ctls, { id: 'coreW', label: 'Core base width as a fraction of height', min: 0.2, max: 0.8, step: 0.05, value: st.coreW, unit: '', onInput: v => { st.coreW = v; rebuild(); } });
+c.drain = segmented(ctls, { label: 'Drainage', value: 'none', options: [{ label: 'None', value: 'none' }, { label: 'Toe drain', value: 'toe' }, { label: 'Chimney + blanket drain', value: 'chimney' }], onInput: v => { st.drain = v; rebuild(); } });
+ctls.appendChild(dom('h2', { text: 'Foundation' }));
+c.Tf = control(ctls, { id: 'Tf', label: 'Permeable sand layer under the dam (0 = on rock)', min: 0, max: 20, step: 1, value: st.Tf, unit: 'm', onInput: v => { st.Tf = v; syncEnable(); rebuild(true); computeView(); } });
+c.cut = segmented(ctls, { label: 'Cut-off wall through the foundation', value: 'none', options: [{ label: 'None', value: 'none' }, { label: 'Under the core, to rock', value: 'full' }], onInput: v => { st.cutoff = v; rebuild(); } });
+c.ccut = segmented(ctls, { label: 'Sheet-pile cut-off (concrete dam)', value: 'none', options: [{ label: 'None', value: 'none' }, { label: 'At the heel', value: 'heel' }, { label: 'At the toe', value: 'toe' }], onInput: v => { st.ccut = v; rebuild(); } });
+c.cutDepth = control(ctls, { id: 'cutDepth', label: 'Sheet-pile depth', min: 2, max: 18, step: 1, value: st.cutDepth, unit: 'm', onInput: v => { st.cutDepth = v; rebuild(); } });
+ctls.appendChild(dom('h2', { text: 'Permeability' }));
+c.k = control(ctls, { id: 'k', label: 'Fill: log<sub>10</sub> k (m/s) — sand 10⁻⁴, silty sand 10⁻⁶', min: -7, max: -3, step: 0.5, value: st.kLog, unit: '', onInput: v => { st.kLog = v; rebuild(); } });
+c.kf = control(ctls, { id: 'kf', label: 'Foundation sand: log<sub>10</sub> k (m/s)', min: -6, max: -2, step: 0.5, value: st.kfLog, unit: '', onInput: v => { st.kfLog = v; rebuild(); } });
+ctls.appendChild(dom('h2', { text: 'Display' }));
+const tg = dom('div', { class: 'toggles' }); ctls.appendChild(tg);
+checkbox(tg, { id: 'showNet', label: 'Flow net', value: true, onInput: v => { st.showNet = v; } });
+checkbox(tg, { id: 'showPart', label: 'Water particles', value: true, onInput: v => { st.showPart = v; } });
+checkbox(tg, { id: 'showSat', label: 'Saturated zone', value: true, onInput: v => { st.showSat = v; } });
+c.Nd = control(ctls, { id: 'Nd', label: 'Equipotential drops <span class="eq">N<sub>d</sub></span>', min: 4, max: 20, step: 1, value: st.Nd, unit: '', onInput: v => { st.Nd = v; derived = null; frame.reported = false; } });
+c.Ld = control(ctls, { id: 'Ld', label: 'Length of the dam (for the total)', min: 100, max: 2000, step: 50, value: st.Ld, unit: 'm', onInput: v => { st.Ld = v; report(); } });
+const br = dom('div', { class: 'btnrow' }); ctls.appendChild(br);
+button(br, 'Remove piezometers', () => { piezos = []; report(); });
+button(br, 'Default dam', () => setPreset('default'));
+function syncEnable() {
+  const earth = st.scene === 'earth';
+  [c.Hd, c.mu, c.md, c.coreW].forEach(x => x.enable(earth)); c.core.el.style.display = earth ? '' : 'none'; c.drain.el.style.display = earth ? '' : 'none';
+  c.coreW.enable(earth && st.core === 'clay'); c.cut.el.style.display = earth ? '' : 'none'; c.cut.el.classList.toggle('off', st.Tf === 0);
+  c.ccut.el.style.display = earth ? 'none' : ''; c.cutDepth.enable(!earth && st.ccut !== 'none'); c.cutDepth.el.style.display = earth ? 'none' : '';
+  c.Tf.setRange(earth ? 0 : 6, 20); c.kf.enable(st.Tf > 0 || !earth); c.k.enable(earth);
+  c.hr.setRange(0, earth ? st.Hd - 2 : st.Hc - 2);
+}
+function setPreset(name) {
+  if (name === 'default') { Object.assign(st, { scene: 'earth', Hd: 30, cw: 8, mu: 2.5, md: 2, hr: 26, ht: 1, core: 'none', coreW: 0.4, drain: 'none', Tf: 0, cutoff: 'none', kLog: -5, kfLog: -4 }); }
+  sceneSeg.set(st.scene, false); c.hr.set(st.hr, false); c.ht.set(st.ht, false); c.Hd.set(st.Hd, false); c.mu.set(st.mu, false); c.md.set(st.md, false); c.core.set(st.core, false); c.coreW.set(st.coreW, false); c.drain.set(st.drain, false); c.Tf.set(st.Tf, false); c.cut.set(st.cutoff, false); c.k.set(st.kLog, false); c.kf.set(st.kfLog, false);
+  syncEnable(); rebuild(true); computeView();
+}
+/* ---------- pointer interaction ---------- */
+function worldFromEvent(ev) { const [X, Y] = canvasPoint(canvas, ev, W); return { x: view.x(X), y: view.y(Y), X, Y }; }
+function inSoil(x, y) { const [i, j] = seep.cell(x, y); if (i < 0 || j < 0 || i >= seep.nx || j >= seep.ny) return false; return seep.type[seep.idx(i, j)] === T_SOIL; }
+canvas.addEventListener('pointerdown', ev => {
+  const p = worldFromEvent(ev); canvas.setPointerCapture(ev.pointerId);
+  const hitP = piezos.find(q => Math.hypot(view.X(q.x) - p.X, view.Y(q.y) - p.Y) < 12 || (Math.abs(view.X(q.x) - p.X) < 6 && p.Y < view.Y(q.y) && p.Y > view.Y(geo.crestY + 2.2) - 10));
+  if (hitP) { drag = { p: hitP, kind: 'piezo' }; return; }
+  if (Math.abs(p.X - (view.X(geo.xmin) + 14)) < 16 && Math.abs(p.Y - view.Y(geo.hr)) < 12) { drag = { kind: 'hr' }; return; }
+  if (Math.abs(p.X - (view.X(geo.xmax) - 14)) < 16 && Math.abs(p.Y - view.Y(geo.ht)) < 12) { drag = { kind: 'ht' }; return; }
+  if (inSoil(p.x, p.y) && piezos.length < 8) { const np = { x: p.x, y: p.y }; piezos.push(np); drag = { p: np, kind: 'piezo', fresh: true }; report(); }
+});
+canvas.addEventListener('pointermove', ev => {
+  const p = worldFromEvent(ev); hover = p;
+  if (!drag) return;
+  if (drag.kind === 'piezo') { if (inSoil(p.x, p.y)) { drag.p.x = p.x; drag.p.y = p.y; } }
+  else if (drag.kind === 'hr') { const v = clamp(Math.round((p.y - geo.Tf) * 2) / 2, 0, +c.hr.el.querySelector('input[type=range]').max); if (v !== st.hr) c.hr.set(v); }
+  else if (drag.kind === 'ht') { const v = clamp(Math.round((p.y - geo.Tf) * 2) / 2, 0, 8); if (v !== st.ht) c.ht.set(v); }
+});
+canvas.addEventListener('pointerup', () => { if (drag && drag.kind === 'piezo') report(); drag = null; });
+canvas.addEventListener('pointerleave', () => { hover = null; });
+canvas.addEventListener('dblclick', ev => { const p = worldFromEvent(ev); const k = piezos.findIndex(q => Math.hypot(view.X(q.x) - p.X, view.Y(q.y) - p.Y) < 14); if (k >= 0) { piezos.splice(k, 1); report(); } });
+/* ---------- predictions ---------- */
+const pr = $('#predicts');
+predict(pr, { q: 'A. We add a toe drain to the homogeneous dam. The phreatic surface inside the dam will…', options: ['move up', 'move down', 'stay where it is'], answer: 1, explain: 'The drain is a short cut to atmospheric pressure at the base, so the whole free surface bends down towards it and the downstream face dries out. Seepage goes up slightly, safety goes up a lot.', setup: () => { setPreset('default'); c.drain.set('toe'); } });
+predict(pr, { q: 'B. Same dam, no drain. We swap the fill for one with ten times the permeability. The seepage quantity and the phreatic surface…', options: ['both change', 'seepage ×10, phreatic surface unchanged', 'seepage unchanged, phreatic surface drops'], answer: 1, explain: 'Laplace’s equation does not contain k for a uniform material: the shape of the flow is fixed by the geometry and the water levels. Only the quantity scales with k. This is why a flow net drawn once serves for any homogeneous fill.', setup: () => { setPreset('default'); c.k.set(-4); } });
+predict(pr, { q: 'C. Dam with a clay core and a chimney drain, three piezometers. We lower the reservoir by 6 m. The piezometer in the core will…', options: ['drop by 6 m', 'drop by less than 6 m', 'not change'], answer: 1, explain: 'Total head falls from the reservoir value to the drain value across the core. A point part-way through the core sees a share of any change in the reservoir, so its reading drops, but by less than the reservoir did. Watching that share stay constant over years is how dam engineers know the core is healthy.', setup: () => { setPreset('default'); c.core.set('clay', false); st.core = 'clay'; c.drain.set('chimney', false); st.drain = 'chimney'; syncEnable(); rebuild(); piezos = [{ x: geo.xc - 1.5, y: geo.Tf + 10 }, { x: geo.xc + 12, y: geo.Tf + 6 }, { x: geo.xc - 20, y: geo.Tf + 12 }]; setTimeout(() => c.hr.set(20), 2500); } });
+predict(pr, { q: 'D. Concrete dam on sand with one sheet-pile cut-off. Moving the cut-off from the heel to the toe makes the uplift on the base…', options: ['smaller', 'larger', 'the same'], answer: 1, explain: 'A cut-off at the heel makes the water lose most of its head before it reaches the base, so the uplift is small. At the toe the head is lost after the base: uplift is large, though the exit gradient at the toe is safer. Real dams put the cut-off at the heel and add a filtered drain near the toe.', setup: () => { sceneSeg.set('concrete'); c.ccut.set('heel', false); st.ccut = 'heel'; c.cutDepth.set(8, false); st.cutDepth = 8; syncEnable(); rebuild(); setTimeout(() => { c.ccut.set('toe'); }, 2500); } });
+/* ---------- start ---------- */
+syncEnable(); rebuild(true); computeView();
+piezos = [{ x: st.mu * st.Hd + 10, y: 8 }, { x: st.mu * st.Hd + 30, y: 4 }];
+requestAnimationFrame(frame);
+document.fonts && document.fonts.ready.then(() => {});
+</script>
+</body>
+</html>

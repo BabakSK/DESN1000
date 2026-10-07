@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. Flow and effective stress — DESN1000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1F3F4; --panel:#FFFFFF; --ink:#16213A; --ink-2:#4E5A6E; --line:#CBD2DB; --line-soft:#E4E8EE;
+  --water:#2C6BD6; --water-soft:#DCE8FA; --rust:#D9480F; --rust-soft:#FCE6DA; --ok:#1E7F4F; --ok-soft:#DDF3E6;
+  --danger:#B91C1C; --danger-soft:#FBE1E1; --warn:#B45309; --warn-soft:#FDEBD0;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:17px}
+@media (min-width:1500px){html{font-size:18px}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Barlow,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+.sheet{max-width:1400px;margin:0 auto;padding:16px 24px 44px}
+header.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:2px}
+.crumb{font-size:.95rem;color:var(--ink-2)}
+.crumb b{color:var(--ink);font-weight:600}
+nav.jump a,footer.foot a{color:var(--water);text-decoration:none;font-weight:500;margin-left:18px}
+nav.jump a:hover,footer.foot a:hover{text-decoration:underline}
+h1{font-size:2rem;font-weight:600;line-height:1.1;margin:.1em 0 .2em;letter-spacing:-.012em}
+.lead{font-size:1.12rem;color:var(--ink-2);max-width:70ch;margin:0 0 14px}
+.stage{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(330px,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.drawing{padding:6px 6px 4px;position:relative}
+.drawing canvas{width:100%;display:block;cursor:crosshair;touch-action:none;border-radius:2px}
+.hint{font-size:.9rem;color:var(--ink-2);padding:6px 4px 2px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hint .solving{color:var(--water);font-variant-numeric:tabular-nums}
+.controls{padding:14px 16px 4px;max-height:640px;overflow:auto}
+.controls h2,.results h2,.note h2,.report h2{font-size:.95rem;font-weight:600;margin:0 0 8px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.controls h2{margin-top:6px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:center;margin:0 0 8px}
+.ctl label{font-weight:500;font-size:.98rem}
+.ctl .num{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
+.ctl .num input{width:5em;font:inherit;font-weight:600;text-align:right;border:1px solid var(--line);border-radius:3px;padding:1px 6px;color:var(--ink);background:#fff}
+.ctl .num input:focus,button:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.ctl .unit{color:var(--ink-2);font-size:.9rem;min-width:2.2em}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink);margin:0;cursor:pointer;height:22px}
+.ctl.off{opacity:.42}.ctl.off input{pointer-events:none}
+.seg-wrap{display:block;margin:0 0 10px}
+.seg-label{font-weight:500;margin:0 0 5px;font-size:.98rem}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.seg button,.btn{font:inherit;font-weight:500;font-size:.95rem;padding:5px 11px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:3px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.small{padding:3px 9px;font-size:.88rem}
+.btn:disabled{opacity:.45;cursor:default}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.chk{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:.98rem;cursor:pointer}
+.chk input{accent-color:var(--ink);width:16px;height:16px;margin:0}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin:4px 0 8px}
+.results{padding:12px 16px 14px;border-top:1px solid var(--line-soft)}
+.big{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:baseline;font-variant-numeric:tabular-nums}
+.big .sw{width:13px;height:13px;border-radius:2px;display:inline-block;transform:translateY(1px)}
+.big .lab{font-weight:500}
+.big .v{font-size:1.45rem;font-weight:600;text-align:right;white-space:nowrap}
+.big .v small{font-size:.9rem;font-weight:500;color:var(--ink-2);margin-left:4px}
+.c-total{color:var(--ink)} .c-water{color:var(--water)} .c-eff{color:var(--rust)} .c-ok{color:var(--ok)} .c-bad{color:var(--danger)}
+.bg-total{background:var(--ink)} .bg-water{background:var(--water)} .bg-eff{background:var(--rust)}
+.work{margin:10px 0 0;padding:9px 12px;background:var(--paper);border-radius:3px;font-size:.95rem;line-height:1.55;font-variant-numeric:tabular-nums}
+.work div{margin:0 0 2px}
+.eq{font-family:"Times New Roman",Times,"STIX Two Text",serif;font-style:italic;font-size:1.07em}
+.eq sub,.eq sup{font-style:normal;font-size:.72em}
+.status{margin:10px 0 0;padding:9px 12px;border-radius:3px;font-weight:500;background:var(--paper)}
+.status.bad{background:var(--danger-soft);color:var(--danger)}
+.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.good{background:var(--ok-soft);color:var(--ok)}
+.status.info{background:var(--water-soft);color:var(--ink)}
+.below{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.below{grid-template-columns:1fr}}
+.report{padding:14px 18px 12px}
+.note{padding:14px 18px 12px}
+.note ol,.note ul{margin:0;padding-left:1.2em}
+.note li{margin:0 0 8px}
+.note p{margin:0 0 9px}
+.note .ans{color:var(--ink-2)}
+table.t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.93rem}
+table.t th{text-align:left;font-weight:500;color:var(--ink-2);padding:3px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:4px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+table.t td.n,table.t th.n{text-align:right}
+table.t tr.sel td{background:var(--water-soft)}
+table.t td.pass{color:var(--ok);font-weight:600} table.t td.fail{color:var(--danger);font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;color:var(--ink-2);padding:2px 4px 2px}
+.legend i{display:inline-block;width:18px;height:3px;transform:translateY(-3px);margin-right:6px}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
+.legend i.dot{width:8px;height:8px;border-radius:50%;transform:translateY(0)}
+.predict{border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin:0 0 10px;background:#fff}
+.predict .pq{font-weight:500;margin:0 0 8px}
+.predict .popts{display:flex;flex-wrap:wrap;gap:6px}
+.predict .popts button{font:inherit;font-size:.93rem;padding:5px 10px;border:1px solid var(--line);background:#fff;border-radius:3px;cursor:pointer;color:var(--ink)}
+.predict .popts button.sel{border-color:var(--ink);background:var(--paper);font-weight:600}
+.predict .popts button.ans{border-color:var(--ok);background:var(--ok-soft)}
+.predict .pfb{margin:8px 0 0;font-size:.95rem;color:var(--ink-2)}
+.predict .pfb .right{color:var(--ok);font-weight:600}.predict .pfb .wrong{color:var(--danger);font-weight:600}.predict .pfb .lock{font-weight:600;color:var(--ink)}
+.kbd{font-size:.85em;border:1px solid var(--line);border-radius:3px;padding:0 5px;background:#fff}
+footer.foot{display:flex;justify-content:space-between;margin-top:22px;padding-top:12px;border-top:1px solid var(--line);font-size:.95rem}
+footer.foot a{margin:0}
+.checks{list-style:none;padding:0;margin:8px 0}
+.checks li{display:flex;gap:8px;align-items:baseline;margin:0 0 5px;font-size:.95rem}
+.checks li::before{content:"";width:12px;height:12px;border-radius:50%;flex:none;transform:translateY(1px);background:var(--line)}
+.checks li.pass::before{background:var(--ok)}.checks li.fail::before{background:var(--danger)}
+.score{font-size:1.5rem;font-weight:600;margin:4px 0}
+.muted{color:var(--ink-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin:16px 0}
+.card{display:block;text-decoration:none;color:inherit;padding:16px 18px 14px}
+.card:hover{border-color:var(--ink)}
+.card h2{font-size:1.3rem;font-weight:600;margin:2px 0 6px}
+.card p{margin:0 0 8px;color:var(--ink-2)}
+.card .go{font-weight:600;color:var(--water)}
+.card .go::after{content:" →"}
+.card .n{font-size:.9rem;color:var(--ink-2)}
+.card canvas{width:100%;display:block;border:1px solid var(--line-soft);border-radius:3px;margin:0 0 10px}
+
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 4px 2px}
+.strip .sv{font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.strip .sv small{font-size:.8rem;font-weight:500;color:var(--ink-2)}
+.strip .sl{font-size:.82rem;color:var(--ink-2)}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+<header class="top">
+  <div class="crumb"><b>DESN1000</b> · Impact of flow on effective stress</div>
+  <nav class="jump"></nav>
+</header>
+<h1>When water flows, who holds the ground up?</h1>
+<p class="lead">Still water carries part of the ground; flowing water drags on the grains as well. Raise the supply tank and watch the standpipes, the stresses and the grain contacts change together, until the sand boils. Then take the same idea to a real excavation.</p>
+
+<div class="stage">
+  <div class="panel drawing">
+    <canvas id="fig" aria-label="Seepage rig or sheet-pile excavation, drawn live"></canvas>
+    <div class="strip" id="strip"></div>
+    <div class="hint"><span id="hintText"></span><span class="solving" id="solveState"></span></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel">
+    <div class="controls" id="ctls"></div>
+    <div class="results" id="results"></div>
+  </div>
+</div>
+
+<div class="below">
+  <div class="panel report" id="workPanel"></div>
+  <div class="panel report" id="challenge"></div>
+</div>
+
+<div class="below">
+  <div class="panel note">
+    <h2>Ask the room first, then test it</h2>
+    <div id="predicts"></div>
+  </div>
+  <div class="panel note">
+    <h2>Where this shows up on site</h2>
+    <p><strong>The rig is the theory.</strong> Terzaghi built this exact apparatus to show that the grains carry <span class="eq">σ′ = σ − u</span> and nothing else. Upward flow adds <span class="eq">γ<sub>w</sub>·i</span> to the pore pressure gradient and takes the same amount from the grains; at <span class="eq">i<sub>cr</sub> = γ′/γ<sub>w</sub> ≈ 1</span> nothing is left and the sand behaves like a heavy liquid. Quicksand is a flow condition, not a kind of sand.</p>
+    <p><strong>The excavation is the practice.</strong> Every basement, pump station or bridge pier dug below the water table inside sheet piles is this problem. The water outside wants to come up through the floor of the pit. If it comes up too fast the floor heaves or boils, the walls lose their toe support and the excavation collapses, usually in minutes. The standard checks are the exit gradient at the floor and Terzaghi's block heave, both computed here from the seepage solution; codes ask for a safety factor of 1.5 to 2.</p>
+    <p><strong>The same physics on a larger scale.</strong> Sand boils at the landward toe of a levee during a flood are upward seepage reaching <span class="eq">i<sub>cr</sub></span>; they are ringed with sandbags to add head, not to stop the water. The 2005 New Orleans floodwall failures and the 2011 Brisbane levee inspections are both stories about this number.</p>
+  </div>
+</div>
+<footer class="foot"></footer>
+</div>
+
+<script>
+/* lib.js — shared code for the seepage examples (DESN1000 guest lecture)
+   Canvas drawing helpers, UI controls, a 2-D finite-volume seepage solver with a free surface,
+   marching squares for flow nets, water particles, and a prediction ("clicker") widget. */
+'use strict';
+const GW = 9.81;
+const C = { ink: '#16213A', ink2: '#4E5A6E', line: '#CBD2DB', lineSoft: '#E4E8EE', water: '#2C6BD6', waterSoft: '#DCE8FA',
+  rust: '#D9480F', rustSoft: '#FCE6DA', sand: '#EAD08E', sandDeep: '#D9B65F', clay: '#C9A07C', clayDeep: '#A97A54',
+  gravel: '#D3CDBF', silt: '#DED2B6', concrete: '#C9CFD6', rock: '#B9B3A8', danger: '#B91C1C', dangerSoft: '#FBE1E1',
+  grain: '#E0A93A', grainEdge: '#8A6A22', paper: '#F1F3F4', ok: '#1E7F4F', okSoft: '#DDF3E6' };
+const $ = (s, r = document) => r.querySelector(s);
+const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sci = (v, d = 1) => { if (!(v > 0)) return '0'; const e = Math.floor(Math.log10(v)); let m = v / 10 ** e; if (m >= 9.95) { m = 1; return `1×10<sup>${e + 1}</sup>`; } return `${fmt(m, d)}×10<sup>${e}</sup>`; };
+const sciPlain = (v, d = 1) => { if (!(v > 0)) return '0'; const e = Math.floor(Math.log10(v)); const m = v / 10 ** e; return `${fmt(m, d)}e${e}`; };
+function timeLabel(sec) {
+  const Y = 365.25 * 86400;
+  if (!Number.isFinite(sec)) return 'never'; if (sec < 1) return `${fmt(sec, 2)} s`;
+  if (sec < 90) return `${fmt(sec, 0)} s`; if (sec < 5400) return `${fmt(sec / 60, 1)} min`;
+  if (sec < 172800) return `${fmt(sec / 3600, 1)} hours`; if (sec < 5e6) return `${fmt(sec / 86400, 1)} days`;
+  if (sec < 2 * Y) return `${fmt(sec / 86400 / 30.44, 1)} months`; if (sec < 1e3 * Y) return `${fmt(sec / Y, sec < 20 * Y ? 1 : 0)} years`;
+  if (sec < 1e6 * Y) return `${fmt(sec / Y / 1e3, 0)},000 years`; return `${fmt(sec / Y / 1e6, 1)} million years`;
+}
+function clockLabel(sec) { // stopwatch reading in natural units
+  if (!Number.isFinite(sec) || sec < 0) return '–';
+  if (sec < 60) return `${fmt(sec, 1)} s`;
+  if (sec < 3600) { const m = Math.floor(sec / 60), s = Math.floor(sec - 60 * m); return `${m} min ${String(s).padStart(2, '0')} s`; }
+  if (sec < 86400) { const h = Math.floor(sec / 3600), m = Math.floor((sec - 3600 * h) / 60); return `${h} h ${String(m).padStart(2, '0')} min`; }
+  const d = sec / 86400; return `${fmt(d, d < 10 ? 1 : 0)} days`;
+}
+function volLabel(m3) { // per second flows
+  const L = m3 * 1000;
+  if (L >= 1) return `${fmt(L, L < 10 ? 2 : 1)} L/s`; if (L * 60 >= 1) return `${fmt(L * 60, 1)} L/min`;
+  if (L * 3600 >= 1) return `${fmt(L * 3600, 1)} L/hour`; if (L * 86400 >= 0.1) return `${fmt(L * 86400, 1)} L/day`;
+  return `${fmt(L * 86400 * 365.25, 2)} L/year`;
+}
+
+/* ---------- DOM helpers ---------- */
+function dom(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'html') e.innerHTML = v; else if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }
+  for (const c of children) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  return e;
+}
+/* slider + typed number. o = {id, label(html), min, max, step, value, unit, onInput, log(false), digits} */
+function control(parent, o) {
+  const wrap = dom('div', { class: 'ctl' });
+  const lab = dom('label', { for: o.id + '-n', html: o.label });
+  const num = dom('input', { type: 'number', id: o.id + '-n', min: o.min, max: o.max, step: o.step, value: o.value });
+  const unit = dom('span', { class: 'unit', html: o.unit || '' });
+  const range = dom('input', { type: 'range', id: o.id, min: o.min, max: o.max, step: o.step, value: o.value });
+  wrap.append(lab, dom('span', { class: 'num' }, [num, unit]), range);
+  parent.appendChild(wrap);
+  let v = +o.value;
+  const api = {
+    get: () => v,
+    set: (nv, fire = true) => { v = clamp(+nv, +range.min, +range.max); range.value = v; num.value = v; if (fire && o.onInput) o.onInput(v); },
+    el: wrap,
+    enable: on => { wrap.classList.toggle('off', !on); range.disabled = !on; num.disabled = !on; },
+    setRange: (min, max) => { range.min = min; range.max = max; num.min = min; num.max = max; if (v < min || v > max) api.set(clamp(v, min, max)); },
+  };
+  range.addEventListener('input', () => api.set(range.value));
+  num.addEventListener('change', () => api.set(num.value));
+  num.addEventListener('keydown', e => { if (e.key === 'Enter') api.set(num.value); });
+  return api;
+}
+function segmented(parent, o) {
+  const wrap = dom('div', { class: 'ctl seg-wrap' });
+  if (o.label) wrap.appendChild(dom('div', { class: 'seg-label', html: o.label }));
+  const row = dom('div', { class: 'seg' }); wrap.appendChild(row); parent.appendChild(wrap);
+  let v = o.value;
+  const btns = o.options.map(op => { const b = dom('button', { type: 'button', html: op.label, 'aria-pressed': op.value === v ? 'true' : 'false' }); b.addEventListener('click', () => api.set(op.value)); row.appendChild(b); return [op.value, b]; });
+  const api = { get: () => v, set: (nv, fire = true) => { v = nv; btns.forEach(([val, b]) => b.setAttribute('aria-pressed', val === v ? 'true' : 'false')); if (fire && o.onInput) o.onInput(v); }, el: wrap };
+  return api;
+}
+function checkbox(parent, o) {
+  const id = o.id; const inp = dom('input', { type: 'checkbox', id });
+  inp.checked = !!o.value;
+  const wrap = dom('label', { class: 'chk', for: id }, [inp, dom('span', { html: o.label })]);
+  parent.appendChild(wrap);
+  inp.addEventListener('change', () => o.onInput && o.onInput(inp.checked));
+  return { get: () => inp.checked, set: (v, fire = true) => { inp.checked = v; if (fire && o.onInput) o.onInput(v); }, el: wrap };
+}
+function button(parent, label, onClick, cls = 'btn') { const b = dom('button', { type: 'button', class: cls, html: label, onclick: onClick }); parent.appendChild(b); return b; }
+
+/* Prediction widget: ask the room, then test. o = {q, options:[..], answer:index, explain, setup(optional fn)} */
+function predict(parent, o) {
+  const box = dom('div', { class: 'predict' });
+  box.appendChild(dom('div', { class: 'pq', html: o.q }));
+  const row = dom('div', { class: 'popts' });
+  const fb = dom('div', { class: 'pfb' });
+  let chosen = null;
+  o.options.forEach((label, i) => {
+    const b = dom('button', { type: 'button', html: label });
+    b.addEventListener('click', () => {
+      chosen = i; row.querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+      fb.innerHTML = `<span class="lock">Locked in.</span> ${o.setup ? 'Now test it: ' : ''}<button type="button" class="btn small">${o.setup ? 'Set it up and reveal' : 'Reveal'}</button>`;
+      fb.querySelector('button').addEventListener('click', () => {
+        if (o.setup) o.setup();
+        const ok = chosen === o.answer;
+        fb.innerHTML = `<span class="${ok ? 'right' : 'wrong'}">${ok ? 'Correct.' : 'Not this time.'}</span> ${o.explain}`;
+        row.querySelectorAll('button').forEach((x, k) => { if (k === o.answer) x.classList.add('ans'); });
+      });
+    });
+    row.appendChild(b);
+  });
+  box.append(row, fb); parent.appendChild(box); return box;
+}
+
+const EXAMPLES = [
+  ['index.html', 'Overview'],
+  ['01-flow-and-effective-stress.html', '1. Flow and effective stress'],
+  ['02-darcy-lab.html', "2. Darcy's law: the permeameter lab"],
+  ['03-earth-dam.html', '3. Earth dam seepage and piezometers'],
+];
+function buildNav(n) {
+  const top = $('nav.jump'), foot = $('footer.foot');
+  if (top) top.innerHTML = `<a href="index.html">Overview</a>` + (n < 3 ? `<a href="${EXAMPLES[n + 1][0]}">Next example</a>` : '');
+  if (foot) foot.innerHTML = (n > 1 ? `<a href="${EXAMPLES[n - 1][0]}">Previous: ${EXAMPLES[n - 1][1]}</a>` : `<a href="index.html">Overview</a>`) +
+    (n < 3 ? `<a href="${EXAMPLES[n + 1][0]}">Next: ${EXAMPLES[n + 1][1]}</a>` : `<span>End of examples</span>`);
+}
+
+/* ---------- Canvas helpers ---------- */
+function makeCanvas(canvas, W, H) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.width = '100%'; canvas.style.aspectRatio = `${W} / ${H}`; canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.W = W; ctx.H = H;
+  return ctx;
+}
+function canvasPoint(canvas, ev, W) { const r = canvas.getBoundingClientRect(); const s = W / r.width; return [(ev.clientX - r.left) * s, (ev.clientY - r.top) * s]; }
+const FONT = 'Barlow, "Segoe UI", system-ui, sans-serif';
+const MATHFONT = '"Times New Roman", Times, serif';
+const _patterns = new WeakMap();
+function pattern(ctx, name) {
+  let m = _patterns.get(ctx); if (!m) { m = new Map(); _patterns.set(ctx, m); }
+  if (m.has(name)) return m.get(name);
+  const c = document.createElement('canvas'); const sz = name === 'rock' ? 10 : 12; c.width = sz; c.height = sz; const g = c.getContext('2d');
+  const dot = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  switch (name) {
+    case 'sand': g.fillStyle = C.sand; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, C.sandDeep); dot(9, 7, 1, C.sandDeep); dot(5, 10, 0.8, C.sandDeep); break;
+    case 'sandwet': g.fillStyle = '#D9C688'; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, '#B49A4F'); dot(9, 7, 1, '#B49A4F'); dot(5, 10, 0.8, '#B49A4F'); break;
+    case 'clay': g.fillStyle = C.clay; g.fillRect(0, 0, sz, sz); g.strokeStyle = C.clayDeep; g.lineWidth = 1; g.beginPath(); g.moveTo(1, 3.5); g.lineTo(6, 3.5); g.moveTo(6, 9.5); g.lineTo(11, 9.5); g.stroke(); break;
+    case 'silt': g.fillStyle = C.silt; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#B8A878'; g.beginPath(); g.moveTo(1, 4.5); g.lineTo(4, 4.5); g.moveTo(7, 9.5); g.lineTo(10, 9.5); g.stroke(); dot(9, 3, 0.9, '#B8A878'); break;
+    case 'gravel': g.fillStyle = C.gravel; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#8F8778'; g.lineWidth = 1; g.beginPath(); g.arc(3.5, 3.5, 2.2, 0, 7); g.moveTo(11.5, 8.5); g.arc(9.5, 8.5, 2, 0, 7); g.stroke(); break;
+    case 'drain': g.fillStyle = '#E4E0D4'; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#8F8778'; g.lineWidth = 1; g.beginPath(); g.arc(3.5, 3.5, 2.2, 0, 7); g.moveTo(11.5, 8.5); g.arc(9.5, 8.5, 2, 0, 7); g.stroke(); break;
+    case 'rock': g.fillStyle = C.rock; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#7C766B'; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 12); g.lineTo(12, -2); g.moveTo(3, 12); g.lineTo(12, 3); g.moveTo(-2, 7); g.lineTo(7, -2); g.stroke(); break;
+    case 'concrete': g.fillStyle = C.concrete; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, '#7F8A99'); dot(9, 8, 1.2, '#7F8A99'); g.strokeStyle = '#7F8A99'; g.beginPath(); g.moveTo(5, 9); g.lineTo(7, 11); g.lineTo(3, 11); g.closePath(); g.stroke(); break;
+    case 'water': g.fillStyle = C.waterSoft; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#9DB8EA'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, 6); g.quadraticCurveTo(3, 3, 6, 6); g.quadraticCurveTo(9, 9, 12, 6); g.stroke(); break;
+  }
+  const p = ctx.createPattern(c, 'repeat'); m.set(name, p); return p;
+}
+/* rich text: _{sub}, ^{sup}, *italic math*; opts: size, weight, color, align (left|center|right), base (alphabetic|middle|top), font */
+function measureRich(ctx, s, size, weight, font) {
+  const toks = tokenize(s); let w = 0;
+  for (const t of toks) { ctx.font = `${t.italic ? 'italic ' : ''}${weight} ${t.small ? size * 0.72 : size}px ${t.italic ? MATHFONT : font}`; w += ctx.measureText(t.text).width; }
+  return w;
+}
+function tokenize(s) {
+  const out = []; let italic = false; let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '*') { italic = !italic; i++; continue; }
+    if ((ch === '_' || ch === '^') && s[i + 1] === '{') { const j = s.indexOf('}', i + 2); out.push({ text: s.slice(i + 2, j), small: true, sub: ch === '_', italic: false }); i = j + 1; continue; }
+    let j = i; while (j < s.length && s[j] !== '*' && !((s[j] === '_' || s[j] === '^') && s[j + 1] === '{')) j++;
+    out.push({ text: s.slice(i, j), italic }); i = j;
+  }
+  return out;
+}
+function text(ctx, x, y, s, o = {}) {
+  const size = o.size || 13, weight = o.weight || 500, font = o.font || FONT, align = o.align || 'left';
+  const w = measureRich(ctx, s, size, weight, font);
+  let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+  ctx.textAlign = 'left'; ctx.textBaseline = o.base || 'alphabetic'; ctx.fillStyle = o.color || C.ink;
+  for (const t of tokenize(s)) {
+    const sz = t.small ? size * 0.72 : size;
+    ctx.font = `${t.italic ? 'italic ' : ''}${weight} ${sz}px ${t.italic ? MATHFONT : font}`;
+    const dy = t.small ? (t.sub ? size * 0.22 : -size * 0.38) : 0;
+    ctx.fillText(t.text, cx, y + dy); cx += ctx.measureText(t.text).width;
+  }
+  return w;
+}
+function tag(ctx, x, y, s, o = {}) { // text with a white backing box; y is the baseline
+  const size = o.size || 12, weight = o.weight || 500, align = o.align || 'left';
+  const w = measureRich(ctx, s, size, weight, o.font || FONT), h = size + 6, pad = 4;
+  const bx = align === 'center' ? x - w / 2 - pad : align === 'right' ? x - w - pad : x - pad;
+  ctx.fillStyle = o.bg || 'rgba(255,255,255,0.92)'; ctx.fillRect(bx, y - size - 1, w + 2 * pad, h);
+  if (o.border) { ctx.strokeStyle = o.border; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, y - size - 0.5, w + 2 * pad, h); }
+  text(ctx, x, y, s, o);
+  return w;
+}
+function arrow(ctx, x1, y1, x2, y2, o = {}) {
+  const col = o.color || C.ink, lw = o.width || 1.5, hd = o.head || 7;
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.setLineDash(o.dash || []);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - hd * 0.6 * Math.cos(a), y2 - hd * 0.6 * Math.sin(a)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - hd * Math.cos(a - 0.4), y2 - hd * Math.sin(a - 0.4)); ctx.lineTo(x2 - hd * Math.cos(a + 0.4), y2 - hd * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+}
+function dimV(ctx, x, y1, y2, label, o = {}) { // vertical dimension between y1,y2 at x; label to the right (or left)
+  const col = o.color || C.ink2;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+  [y1, y2].forEach(y => { ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.stroke(); });
+  if (Math.abs(y2 - y1) > 14) { arrow(ctx, x, (y1 + y2) / 2, x, y1, { color: col, width: 1, head: 6 }); arrow(ctx, x, (y1 + y2) / 2, x, y2, { color: col, width: 1, head: 6 }); }
+  if (label) tag(ctx, x + (o.side === 'left' ? -7 : 7), (y1 + y2) / 2 + 4, label, { size: o.size || 12, color: col, align: o.side === 'left' ? 'right' : 'left' });
+}
+function dimH(ctx, x1, x2, y, label, o = {}) {
+  const col = o.color || C.ink2;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  [x1, x2].forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke(); });
+  if (Math.abs(x2 - x1) > 14) { arrow(ctx, (x1 + x2) / 2, y, x1, y, { color: col, width: 1, head: 6 }); arrow(ctx, (x1 + x2) / 2, y, x2, y, { color: col, width: 1, head: 6 }); }
+  if (label) tag(ctx, (x1 + x2) / 2, y + (o.below ? 16 : -6), label, { size: o.size || 12, color: col, align: 'center' });
+}
+function wtSymbol(ctx, x, y, col = C.water) { // ▽ with two lines, on a water surface at y
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x - 7, y - 10); ctx.lineTo(x + 7, y - 10); ctx.lineTo(x, y); ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 5, y + 3); ctx.lineTo(x + 5, y + 3); ctx.moveTo(x - 3, y + 6); ctx.lineTo(x + 3, y + 6); ctx.stroke();
+}
+function standpipe(ctx, x, yTip, yTop, yWater, o = {}) { // a piezometer tube; canvas coords, y down
+  const w = o.width || 7;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - w / 2, yTop, w, yTip - yTop);
+  if (yWater !== null && yWater < yTip) { ctx.fillStyle = o.waterColor || C.water; ctx.fillRect(x - w / 2 + 1, Math.max(yWater, yTop), w - 2, yTip - Math.max(yWater, yTop)); }
+  ctx.strokeStyle = o.color || C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x - w / 2, yTop, w, yTip - yTop);
+  // porous tip
+  ctx.fillStyle = o.color || C.ink; ctx.beginPath(); ctx.arc(x, yTip, w * 0.65, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, yTip, w * 0.3, 0, 7); ctx.fill();
+  if (yWater !== null && yWater < yTip && yWater >= yTop) { ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - w, yWater); ctx.lineTo(x + w, yWater); ctx.stroke(); }
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function polygon(ctx, pts) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
+function pointInPoly(pts, x, y) { let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside; } return inside; }
+
+/* Simple x-y plot on canvas. o = {x,y,w,h, xmin,xmax, ymin,ymax, yDown:false, xlabel, ylabel, series:[{pts:[[x,y]..], color, width, dash}], xTicks, yTicks, xfmt, yfmt} */
+function plot(ctx, o) {
+  const { x, y, w, h } = o;
+  const sx = v => x + (v - o.xmin) / (o.xmax - o.xmin) * w;
+  const sy = v => o.yDown ? y + (v - o.ymin) / (o.ymax - o.ymin) * h : y + h - (v - o.ymin) / (o.ymax - o.ymin) * h;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = C.lineSoft; ctx.lineWidth = 1;
+  const xt = o.xTicks || niceTicks(o.xmin, o.xmax, 5), yt = o.yTicks || niceTicks(o.ymin, o.ymax, 5);
+  xt.forEach(v => { ctx.beginPath(); ctx.moveTo(sx(v), y); ctx.lineTo(sx(v), y + h); ctx.stroke(); text(ctx, sx(v), y + h + 14, o.xfmt ? o.xfmt(v) : fmt(v, decimalsFor(xt)), { size: 11, align: 'center', color: C.ink2 }); });
+  yt.forEach(v => { ctx.beginPath(); ctx.moveTo(x, sy(v)); ctx.lineTo(x + w, sy(v)); ctx.stroke(); text(ctx, x - 5, sy(v) + 4, o.yfmt ? o.yfmt(v) : fmt(v, decimalsFor(yt)), { size: 11, align: 'right', color: C.ink2 }); });
+  if (o.xmin < 0 && o.xmax > 0) { ctx.strokeStyle = '#9AA3B0'; ctx.beginPath(); ctx.moveTo(sx(0), y); ctx.lineTo(sx(0), y + h); ctx.stroke(); }
+  ctx.strokeStyle = C.line; ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  if (o.xlabel) text(ctx, x + w / 2, y + h + 30, o.xlabel, { size: 12, align: 'center', color: C.ink2 });
+  if (o.ylabel) text(ctx, x, y - 8, o.ylabel, { size: 12, color: C.ink2 });
+  ctx.save(); ctx.beginPath(); ctx.rect(x - 1, y - 1, w + 2, h + 2); ctx.clip();
+  (o.series || []).forEach(s => {
+    if (!s.pts.length) return;
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 2.5; ctx.setLineDash(s.dash ? [5, 4] : []); ctx.lineJoin = 'round';
+    ctx.beginPath(); s.pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke(); ctx.setLineDash([]);
+    if (s.dots) s.pts.forEach(p => { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), s.dotR || 4, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(); });
+  });
+  ctx.restore();
+  return { sx, sy };
+}
+function niceStep(range, n = 5) { const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), r = raw / p; return (r >= 5 ? 5 : r >= 2 ? 2 : 1) * p; }
+function niceTicks(a, b, n = 5) { const st = niceStep(b - a, n), out = []; for (let v = Math.ceil(a / st - 1e-9) * st; v <= b + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+function decimalsFor(ticks) { const st = ticks.length > 1 ? ticks[1] - ticks[0] : 1; return st >= 1 ? 0 : st >= 0.1 ? 1 : 2; }
+
+/* ---------- 2-D steady seepage solver (finite volume, SOR, free surface by saturation switching) ---------- */
+const T_ROCK = 0, T_SOIL = 1, T_FIXED = 2, T_AIR = 3;
+class Seepage {
+  constructor(nx, ny, dx, x0, y0) {
+    this.nx = nx; this.ny = ny; this.dx = dx; this.x0 = x0; this.y0 = y0;
+    const N = nx * ny;
+    this.k = new Float64Array(N); this.type = new Uint8Array(N).fill(T_AIR); this.hfix = new Float64Array(N);
+    this.h = new Float64Array(N); this.S = new Float64Array(N).fill(1); this.seep = new Uint8Array(N); this.mat = new Uint8Array(N);
+    this.n = new Float64Array(N).fill(0.35); this.vx = new Float64Array(N); this.vy = new Float64Array(N);
+    this.iter = 0; this.change = Infinity; this.hasAir = true; this.freeSurface = true; this.transition = 1.5; this.relax = 0.3; this.floor = 1e-5; this.freezeAfter = 40; this.freezeS = 160;
+  }
+  idx(i, j) { return j * this.nx + i; }
+  xc(i) { return this.x0 + (i + 0.5) * this.dx; }
+  yc(j) { return this.y0 + (j + 0.5) * this.dx; }
+  cell(x, y) { return [Math.floor((x - this.x0) / this.dx), Math.floor((y - this.y0) / this.dx)]; }
+  /* fn(x, y) -> {type, k, mat, hfix, n}. Cells that become soil get an initial head from guess(x,y). */
+  build(fn, guess) {
+    const { nx, ny } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = this.idx(i, j), x = this.xc(i), y = this.yc(j), r = fn(x, y);
+      const wasSoil = this.type[c] === T_SOIL;
+      this.type[c] = r.type; this.k[c] = r.type === T_FIXED ? 1e4 : (r.k || 0); this.mat[c] = r.mat || 0; this.hfix[c] = r.hfix || 0; this.n[c] = r.n || 0.35;
+      if (r.type === T_FIXED) { this.h[c] = r.hfix; this.S[c] = 1; this.seep[c] = 0; }
+      else if (r.type === T_SOIL) { if (!wasSoil) { const gh = guess(x, y); this.h[c] = Number.isFinite(gh) ? gh : y; this.S[c] = 1; this.seep[c] = 0; } }
+      else { this.h[c] = y; this.S[c] = 0; this.seep[c] = 0; }
+    }
+    this.iter = 0; this.change = Infinity; if (this._dS) { this._dS.fill(0); this._rx.fill(this.relax); }
+  }
+  /* one outer iteration: update saturation & seepage faces, then solve the linear system by Jacobi-preconditioned CG */
+  step(cgIters = 150) {
+    const { nx, ny, k, type, h, S, seep } = this; const N = nx * ny;
+    this.updateS(this.relax); if (this.iter < this.freezeAfter) this.updateSeep();
+    if (!this._tl || this._tl.length !== N) { this._tl = new Float64Array(N); this._tr = new Float64Array(N); this._td = new Float64Array(N); this._tu = new Float64Array(N); this._diag = new Float64Array(N); this._b = new Float64Array(N); this._free = new Uint8Array(N); this._r = new Float64Array(N); this._z = new Float64Array(N); this._p = new Float64Array(N); this._Ap = new Float64Array(N); }
+    const tl = this._tl, tr = this._tr, td = this._td, tu = this._tu, diag = this._diag, b = this._b, free = this._free, r = this._r, z = this._z, pp = this._p, Ap = this._Ap;
+    const kk = c => type[c] === T_FIXED ? 1e4 : k[c] * Math.max(S[c], this.floor);
+    const isFree = c => type[c] === T_SOIL && !seep[c] && S[c] > 2 * this.floor;
+    let nfree = 0, kmax = 0;
+    for (let c = 0; c < N; c++) { free[c] = isFree(c) ? 1 : 0; if (type[c] === T_SOIL && k[c] > kmax) kmax = k[c]; }
+    const scale = kmax > 0 ? 1 / kmax : 1;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = j * nx + i; tl[c] = tr[c] = td[c] = tu[c] = 0; diag[c] = 0; b[c] = 0; if (!free[c]) continue; nfree++;
+      const ka = kk(c) * scale; let d = 0, bb = 0;
+      const face = (n, store) => { const t = type[n]; if (!(t === T_SOIL || t === T_FIXED)) return; if (seep[n] && h[n] > h[c]) return; const kb = kk(n) * scale; const T = 2 * ka * kb / (ka + kb); d += T; if (free[n]) store(T); else bb += T * h[n]; };
+      if (i > 0) face(c - 1, T => { tl[c] = T; });
+      if (i < nx - 1) face(c + 1, T => { tr[c] = T; });
+      if (j > 0) face(c - nx, T => { td[c] = T; });
+      if (j < ny - 1) face(c + nx, T => { tu[c] = T; });
+      diag[c] = d; b[c] = bb;
+      if (d === 0) free[c] = 0; // isolated cell
+    }
+    // r = b - A h
+    const matvec = (v, out) => { for (let c = 0; c < N; c++) { if (!free[c]) { out[c] = 0; continue; } let s = diag[c] * v[c]; if (tl[c]) s -= tl[c] * v[c - 1]; if (tr[c]) s -= tr[c] * v[c + 1]; if (td[c]) s -= td[c] * v[c - nx]; if (tu[c]) s -= tu[c] * v[c + nx]; out[c] = s; } };
+    matvec(h, Ap);
+    let rz = 0, bnorm = 0;
+    for (let c = 0; c < N; c++) { if (!free[c]) { r[c] = 0; z[c] = 0; pp[c] = 0; continue; } r[c] = b[c] - Ap[c]; z[c] = r[c] / diag[c]; pp[c] = z[c]; rz += r[c] * z[c]; bnorm = Math.max(bnorm, Math.abs(b[c]) / diag[c]); }
+    const tol = Math.max(1e-10, 1e-7 * Math.max(1, bnorm)); let maxd = 0, it = 0, rmax = Infinity;
+    for (; it < cgIters; it++) {
+      matvec(pp, Ap); let pAp = 0; for (let c = 0; c < N; c++) if (free[c]) pAp += pp[c] * Ap[c];
+      if (pAp <= 0) break; const alpha = rz / pAp; rmax = 0; let rzn = 0;
+      for (let c = 0; c < N; c++) { if (!free[c]) continue; const dh = alpha * pp[c]; h[c] += dh; const ad = S[c] > 0.1 ? Math.abs(dh) : 0; if (ad > maxd) maxd = ad; r[c] -= alpha * Ap[c]; const rr = Math.abs(r[c]) / diag[c]; if (rr > rmax) rmax = rr; z[c] = r[c] / diag[c]; rzn += r[c] * z[c]; }
+      if (rmax < tol) { it++; break; }
+      const beta = rzn / rz; rz = rzn; for (let c = 0; c < N; c++) if (free[c]) pp[c] = z[c] + beta * pp[c];
+    }
+    this.iter += 1; this.cgLast = it; this.change = maxd; this.residual = rmax; return maxd;
+  }
+  updateS(relax = 0.3) {
+    const { nx, ny, type, h, S, dx } = this;
+    if (!this.freeSurface || this.iter >= this.freezeS) return;
+    if (!this._dS || this._dS.length !== S.length) { this._dS = new Float64Array(S.length); this._rx = new Float64Array(S.length).fill(relax); }
+    const dSp = this._dS, rx = this._rx, fl = this.floor, dryLim = 2 * fl; let maxdS = 0;
+    const rl = relax * Math.max(0.03, Math.pow(0.97, this.iter));
+    for (let j = 0; j < ny; j++) { const y = this.yc(j); for (let i = 0; i < nx; i++) { const c = j * nx + i; if (type[c] !== T_SOIL) continue;
+      let p;
+      if (S[c] > dryLim) p = h[c] - y;
+      else { // dry cell: pinned at atmospheric pressure; it re-wets only if a wet neighbour pushes water above it
+        let hn = -Infinity;
+        if (i > 0) { const n = c - 1; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (i < nx - 1) { const n = c + 1; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (j > 0) { const n = c - nx; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (j < ny - 1) { const n = c + nx; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        p = hn === -Infinity ? -1e9 : hn - y - 0.25 * dx;
+      }
+      const St = p >= 0 ? 1 : Math.max(fl, 1 + p / (this.transition * dx)); const d = St - S[c];
+      if (d * dSp[c] < 0) rx[c] = Math.max(0.02, rx[c] * 0.5); else rx[c] = Math.min(rl, rx[c] * 1.15);
+      dSp[c] = d; const step = rx[c] * d; S[c] += step; if (Math.abs(step) > maxdS) maxdS = Math.abs(step);
+      if (S[c] <= dryLim) { S[c] = fl; h[c] = y; }
+    } }
+    this.dS = maxdS;
+  }
+  /* Seepage faces: a soil cell with an exposed (air) face discharges when its head exceeds the head at that face,
+     which is the face elevation or, if a water body sits against it, that water level (this.exitHead(x, y)). */
+  updateSeep() {
+    const { nx, ny, type, h, seep, dx } = this;
+    if (!this.hasAir) return;
+    for (let j = 0; j < ny; j++) { const y = this.yc(j); for (let i = 0; i < nx; i++) {
+      const c = j * nx + i; if (type[c] !== T_SOIL) continue;
+      const airUp = j < ny - 1 && type[c + nx] === T_AIR, airL = i > 0 && type[c - 1] === T_AIR, airR = i < nx - 1 && type[c + 1] === T_AIR;
+      const wet = (i > 0 && type[c - 1] === T_FIXED) || (i < nx - 1 && type[c + 1] === T_FIXED) || (j > 0 && type[c - nx] === T_FIXED) || (j < ny - 1 && type[c + nx] === T_FIXED);
+      if (!(airUp || airL || airR) || wet) { seep[c] = 0; continue; }
+      const yface = (airL || airR) ? y : y + dx / 2; const x = this.xc(i);
+      const hx = this.exitHead ? Math.max(yface, this.exitHead(x, yface)) : yface;
+      if (seep[c]) { let hn = -Infinity; if (i > 0 && type[c - 1] === T_SOIL) hn = Math.max(hn, h[c - 1]); if (i < nx - 1 && type[c + 1] === T_SOIL) hn = Math.max(hn, h[c + 1]); if (j > 0 && type[c - nx] === T_SOIL) hn = Math.max(hn, h[c - nx]); if (j < ny - 1 && type[c + nx] === T_SOIL) hn = Math.max(hn, h[c + nx]);
+        if (hn < hx - 0.02 * dx) { seep[c] = 0; } else h[c] = hx; }
+      else if (this.S[c] > 0.5 && h[c] > hx + 1e-6) { seep[c] = 1; h[c] = hx; this.S[c] = 1; }
+    } }
+  }
+  /* one outer iteration: update saturation & seepage faces, then solve the linear system by Jacobi-preconditioned CG */
+  isDir(c) { return this.type[c] === T_FIXED || this.seep[c] === 1; }
+  cond(a, b) { const ta = this.type[a], tb = this.type[b]; if (!((ta === T_SOIL || ta === T_FIXED) && (tb === T_SOIL || tb === T_FIXED))) return 0; if (this.isDir(a) && this.isDir(b)) return 0; if (this.seep[a] && this.h[a] > this.h[b]) return 0; if (this.seep[b] && this.h[b] > this.h[a]) return 0; const ka = ta === T_FIXED ? 1e4 : this.k[a] * Math.max(this.S[a], this.floor), kb = tb === T_FIXED ? 1e4 : this.k[b] * Math.max(this.S[b], this.floor); return 2 * ka * kb / (ka + kb); }
+  fluxX(i, j) { if (i <= 0 || i >= this.nx) return 0; const a = this.idx(i - 1, j), b = this.idx(i, j); const T = this.cond(a, b); return T ? -T * (this.h[b] - this.h[a]) / this.dx : 0; } // Darcy velocity through the face x = x0 + i dx, +x
+  fluxY(i, j) { if (j <= 0 || j >= this.ny) return 0; const a = this.idx(i, j - 1), b = this.idx(i, j); const T = this.cond(a, b); return T ? -T * (this.h[b] - this.h[a]) / this.dx : 0; }
+  computeVelocities() {
+    const { nx, ny, vx, vy, type, S } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; if (type[c] !== T_SOIL || S[c] < 0.5) { vx[c] = 0; vy[c] = 0; continue; } vx[c] = 0.5 * (this.fluxX(i, j) + this.fluxX(i + 1, j)); vy[c] = 0.5 * (this.fluxY(i, j) + this.fluxY(i, j + 1)); }
+  }
+  velocityAt(x, y) { // Darcy velocity, bilinear between cell centres
+    const fx = (x - this.x0) / this.dx - 0.5, fy = (y - this.y0) / this.dx - 0.5; const i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    let vx = 0, vy = 0, ws = 0;
+    for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) { const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue; const c = this.idx(i, j); const w = (di ? tx : 1 - tx) * (dj ? ty : 1 - ty); vx += w * this.vx[c]; vy += w * this.vy[c]; ws += w; }
+    return ws > 0 ? [vx / ws, vy / ws] : [0, 0];
+  }
+  headAt(x, y) { // bilinear among saturated soil / fixed cells; null if dry
+    const fx = (x - this.x0) / this.dx - 0.5, fy = (y - this.y0) / this.dx - 0.5; const i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    let hs = 0, ws = 0;
+    for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) { const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue; const c = this.idx(i, j); const t = this.type[c]; if (!(t === T_FIXED || (t === T_SOIL && this.S[c] > 0.5))) continue; const w = (di ? tx : 1 - tx) * (dj ? ty : 1 - ty); hs += w * this.h[c]; ws += w; }
+    return ws > 0.3 ? hs / ws : null;
+  }
+  streamFunction() { // psi on corners (nx+1)*(ny+1): flux crossing below the point along a vertical line
+    const { nx, ny, dx } = this; const psi = new Float64Array((nx + 1) * (ny + 1));
+    for (let i = 0; i <= nx; i++) { let acc = 0; for (let j = 0; j < ny; j++) { acc += this.fluxX(i, j) * dx; psi[(j + 1) * (nx + 1) + i] = acc; } }
+    return psi;
+  }
+  totalFlow() { // max |psi| at the top row ~ total seepage per metre (m3/s/m)
+    const psi = this.streamFunction(); let mx = 0; const { nx, ny } = this;
+    for (let i = 0; i <= nx; i++) { const v = Math.abs(psi[ny * (nx + 1) + i]); if (v > mx) mx = v; }
+    return mx;
+  }
+  fixedInflow(pred) { // flow (m3/s/m) entering fixed-head cells satisfying pred(i,j) from soil cells (positive = into the fixed cells)
+    let q = 0; const { nx, ny, dx } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = this.idx(i, j); if (this.type[c] !== T_FIXED || !pred(i, j, c)) continue;
+      if (i > 0 && this.type[c - 1] === T_SOIL) q += this.fluxX(i, j) * dx;        // +x flux into c from left
+      if (i < nx - 1 && this.type[c + 1] === T_SOIL) q -= this.fluxX(i + 1, j) * dx;
+      if (j > 0 && this.type[c - nx] === T_SOIL) q += this.fluxY(i, j) * dx;
+      if (j < ny - 1 && this.type[c + nx] === T_SOIL) q -= this.fluxY(i, j + 1) * dx; }
+    return q;
+  }
+}
+/* marching squares on a node grid: F[j*nx+i]; valid[j*nx+i] truthy; returns segments in node coordinates */
+const MS_CASES = { 1: [[2, 3]], 2: [[1, 2]], 3: [[1, 3]], 4: [[0, 1]], 5: [[0, 3], [1, 2]], 6: [[0, 2]], 7: [[0, 3]], 8: [[0, 3]], 9: [[0, 2]], 10: [[0, 1], [2, 3]], 11: [[0, 1]], 12: [[1, 3]], 13: [[1, 2]], 14: [[2, 3]] };
+function isolines(F, nx, ny, level, valid) {
+  const segs = [];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const ia = j * nx + i, ib = ia + 1, ic = ia + nx + 1, id = ia + nx;
+    if (!(valid[ia] && valid[ib] && valid[ic] && valid[id])) continue;
+    const a = F[ia], b = F[ib], c = F[ic], d = F[id];
+    const code = (a > level ? 8 : 0) | (b > level ? 4 : 0) | (c > level ? 2 : 0) | (d > level ? 1 : 0);
+    if (code === 0 || code === 15) continue;
+    const pt = e => { switch (e) { case 0: return [i + (level - a) / (b - a), j]; case 1: return [i + 1, j + (level - b) / (c - b)]; case 2: return [i + (level - d) / (c - d), j + 1]; default: return [i, j + (level - a) / (d - a)]; } };
+    for (const [e1, e2] of MS_CASES[code]) { const p = pt(e1), q = pt(e2); if (Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(q[0]) && Number.isFinite(q[1])) segs.push([p[0], p[1], q[0], q[1]]); }
+  }
+  return segs;
+}
+/* Water particles advected by the pore velocity. */
+class Particles {
+  constructor(n) { this.n = n; this.p = []; this.age = []; }
+  seed(seep, k = 1) {
+    const cells = []; for (let j = 0; j < seep.ny; j++) for (let i = 0; i < seep.nx; i++) { const c = seep.idx(i, j); if (seep.type[c] === T_SOIL && seep.S[c] > 0.7 && Math.hypot(seep.vx[c], seep.vy[c]) > 1e-12) cells.push(c); }
+    this.cells = cells;
+    for (let m = 0; m < k; m++) { if (!cells.length) return; const c = cells[Math.floor(Math.random() * cells.length)]; const i = c % seep.nx, j = Math.floor(c / seep.nx); this.p.push([seep.xc(i) + (Math.random() - 0.5) * seep.dx, seep.yc(j) + (Math.random() - 0.5) * seep.dx]); this.age.push(0); }
+  }
+  step(seep, dt, speedup) {
+    if (!this.cells) this.seed(seep, this.n);
+    while (this.p.length < this.n && this.cells && this.cells.length) this.seed(seep, 1);
+    for (let q = this.p.length - 1; q >= 0; q--) {
+      const pt = this.p[q]; const [vx, vy] = seep.velocityAt(pt[0], pt[1]);
+      const [i, j] = seep.cell(pt[0], pt[1]); const inside = i >= 0 && j >= 0 && i < seep.nx && j < seep.ny; const c = inside ? seep.idx(i, j) : -1;
+      const nn = c >= 0 ? seep.n[c] : 0.35;
+      const sp = Math.hypot(vx, vy);
+      if (!inside || seep.type[c] !== T_SOIL || seep.S[c] < 0.5 || sp < 1e-12 || this.age[q] > 4000) { this.p.splice(q, 1); this.age.splice(q, 1); continue; }
+      pt[0] += vx / nn * dt * speedup; pt[1] += vy / nn * dt * speedup; this.age[q]++;
+    }
+  }
+  reset() { this.p = []; this.age = []; this.cells = null; }
+}
+/* typical median pore speed (m/s) to size the animation speed-up */
+function medianSpeed(seep) {
+  const v = []; for (let j = 0; j < seep.ny; j++) for (let i = 0; i < seep.nx; i++) { const c = seep.idx(i, j); if (seep.type[c] === T_SOIL && seep.S[c] > 0.7) { const s = Math.hypot(seep.vx[c], seep.vy[c]) / seep.n[c]; if (s > 1e-12) v.push(s); } }
+  if (!v.length) return 0; v.sort((a, b) => a - b); return v[Math.floor(v.length * 0.6)];
+}
+
+</script>
+<script>
+buildNav(1);
+$('nav.jump').innerHTML = '<a href="index.html">Home</a><a href="darcy-law.html">Darcy\'s law</a><a href="earth-dam.html">Earth dam seepage and piezometers</a>'; $('footer.foot').innerHTML = '<span>DESN1000 · interactive examples on water in soil</span><a href="index.html">All examples</a>';
+const canvas = $('#fig'), W = 1000, H = 520, ctx = makeCanvas(canvas, W, H);
+const st = { scene: 'lab',
+  // lab rig
+  L: 1.0, hw: 0.3, dH: 0.4, gsat: 20, z: 0.5, obj: 'none', kLab: 1e-4,
+  // site
+  T: 15, D: 8, d: 4, B: 12, dw: 0.5, kLog: -4, Nd: 10, showNet: true, showPart: true, Lpit: 20 };
+const A_COL = Math.PI * 0.075 * 0.075; // 150 mm diameter column
+let lastT = performance.now(), running = null, objSink = 0, jig = 0;
+/* ============================== LAB RIG ============================== */
+const lab = {};
+function labCalc() {
+  const s = st, gw = GW; const i = s.dH / s.L, gsub = s.gsat - gw, icr = gsub / gw; const z = clamp(s.z, 0, s.L);
+  const sig = gw * s.hw + s.gsat * z, uRaw = gw * (s.hw + z) + gw * i * z, effRaw = sig - uRaw, effNoFlow = gsub * z;
+  const eff = Math.max(0, effRaw), u = sig - eff; // once the grains separate the water carries everything
+  const base = { sig: gw * s.hw + s.gsat * s.L, u: gw * (s.hw + s.L + s.dH), eff: (gsub - gw * i) * s.L };
+  const boiling = i >= icr - 1e-9; const FS = i > 0 ? icr / i : Infinity; const iEff = Math.min(i, icr); // the gradient the sand can actually carry
+  const at = zz => { const sg = gw * s.hw + s.gsat * zz; const ef = Math.max(0, sg - (gw * (s.hw + zz) + gw * i * zz)); return { sig: sg, u: sg - ef, eff: ef }; };
+  const v = s.kLab * Math.abs(i); const vs = v / 0.4;
+  return { i, iEff, icr, z, sig, u, eff, effNoFlow, base, at, boiling, FS, v, vs, gsub, dHcr: icr * s.L, ratio: i > 0 ? clamp(i / icr, 0, 1) : 0 };
+}
+// fixed grain packing for the lens
+const grains = []; { let seed = 7; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }; for (let k = 0; k < 40; k++) { const r = 7 + rnd() * 5; let ok = false, x = 0, y = 0; for (let tries = 0; tries < 60 && !ok; tries++) { x = (rnd() - 0.5) * 120; y = (rnd() - 0.5) * 120; ok = Math.hypot(x, y) < 58 - r && grains.every(g => Math.hypot(g.x - x, g.y - y) > g.r + r - 1.5); } if (ok) grains.push({ x, y, r, ph: rnd() * 6.28 }); } }
+const contacts = []; for (let a = 0; a < grains.length; a++) for (let b = a + 1; b < grains.length; b++) { const ga = grains[a], gb = grains[b]; if (Math.hypot(ga.x - gb.x, ga.y - gb.y) < ga.r + gb.r + 3.5) contacts.push([a, b]); }
+const labParts = []; for (let k = 0; k < 90; k++) labParts.push([Math.random(), Math.random()]);
+function drawLab(dt) {
+  const s = st, m = labCalc(); const sc = 120; // px per metre (vertical)
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  const cx = 405, cw = 150, yBase = 430, yTop = yBase - s.L * sc, yWT = yTop - s.hw * sc, ySupply = yWT - s.dH * sc;
+  const xL = cx - cw / 2, xR = cx + cw / 2;
+  // --- supply reservoir (left) with pipe to the base
+  const sx = 95, sw = 66, sTop = Math.min(ySupply, yWT - 1.55 * sc) - 20, sBot = yBase + 6;
+  ctx.fillStyle = '#F7F8FA'; ctx.fillRect(sx - sw / 2, sTop, sw, sBot - sTop);
+  ctx.fillStyle = pattern(ctx, 'water'); ctx.fillRect(sx - sw / 2 + 1, ySupply, sw - 2, sBot - ySupply - 1);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.strokeRect(sx - sw / 2, sTop, sw, sBot - sTop);
+  ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx - sw / 2, ySupply); ctx.lineTo(sx + sw / 2, ySupply); ctx.stroke();
+  // pipe into the plenum under the base plate
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(sx, sBot - 2); ctx.lineTo(sx, yBase + 12); ctx.lineTo(xL + 4, yBase + 12); ctx.stroke();
+  ctx.strokeStyle = C.water; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(sx, sBot - 2); ctx.lineTo(sx, yBase + 12); ctx.lineTo(xL + 4, yBase + 12); ctx.stroke();
+  // handle on the supply surface
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; roundRect(ctx, sx - 14, ySupply - 9, 28, 18, 3); ctx.fill(); ctx.stroke(); ctx.beginPath(); for (let d = -4; d <= 4; d += 4) { ctx.moveTo(sx - 7, ySupply + d); ctx.lineTo(sx + 7, ySupply + d); } ctx.stroke();
+  text(ctx, sx, sTop - 22, 'supply tank', { size: 12, weight: 600, align: 'center', color: C.ink2 }); text(ctx, sx, sTop - 8, 'drag the ▤ tab', { size: 11, align: 'center', color: C.ink2 });
+  // --- the column
+  ctx.fillStyle = '#F7F8FA'; ctx.fillRect(xL, yWT - 0.65 * sc, cw, yBase - (yWT - 0.65 * sc));
+  // water above sand
+  ctx.fillStyle = pattern(ctx, 'water'); ctx.fillRect(xL, yWT, cw, yTop - yWT);
+  // sand (tint towards blue-grey as it liquefies)
+  ctx.fillStyle = pattern(ctx, 'sandwet'); ctx.fillRect(xL, yTop, cw, yBase - yTop);
+  if (m.ratio > 0) { ctx.fillStyle = `rgba(44,107,214,${0.08 + 0.32 * m.ratio})`; ctx.fillRect(xL, yTop, cw, yBase - yTop); }
+  // porous base plate and the plenum under it
+  ctx.fillStyle = C.concrete; ctx.fillRect(xL, yBase, cw, 8); ctx.strokeStyle = C.ink; ctx.lineWidth = 1; ctx.strokeRect(xL, yBase, cw, 8);
+  ctx.fillStyle = pattern(ctx, 'water'); ctx.fillRect(xL, yBase + 8, cw, 8); ctx.strokeStyle = C.ink; ctx.strokeRect(xL, yBase + 8, cw, 8);
+  // overflow spout at the tank water level
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(xR, yWT - 6); ctx.lineTo(xR + 34, yWT - 6); ctx.lineTo(xR + 34, yWT + 22); ctx.stroke();
+  ctx.strokeStyle = C.water; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(xR + 2, yWT); ctx.lineTo(xR + 30, yWT); ctx.lineTo(xR + 30, yWT + 22); ctx.stroke();
+  tag(ctx, xR + 40, yWT - 10, 'overflow', { size: 11, color: C.ink2 });
+  // column walls
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(xL, yWT - 0.65 * sc); ctx.lineTo(xL, yBase); ctx.moveTo(xR, yWT - 0.65 * sc); ctx.lineTo(xR, yBase); ctx.stroke();
+  ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xL, yWT); ctx.lineTo(xR, yWT); ctx.stroke(); wtSymbol(ctx, xL + 20, yWT);
+  ctx.strokeStyle = C.grainEdge; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xL, yTop); ctx.lineTo(xR, yTop); ctx.stroke();
+  // water particles in the sand
+  const LAB_SPEEDUP = 1500;
+  if (Math.abs(m.i) > 1e-6) { const pxs = m.vs * LAB_SPEEDUP * dt / (s.L) * Math.sign(m.i); for (const p of labParts) { p[1] -= pxs; if (p[1] < 0) p[1] += 1; if (p[1] > 1) p[1] -= 1; ctx.fillStyle = 'rgba(44,107,214,0.85)'; ctx.beginPath(); ctx.arc(xL + 6 + p[0] * (cw - 12), yTop + p[1] * (yBase - yTop), 1.8, 0, 7); ctx.fill(); } }
+  // dimensions
+  dimV(ctx, xL - 26, yTop, yBase, `*L* = ${fmt(s.L, 2)} m`, { side: 'left' });
+  dimV(ctx, xL - 26, yWT, yTop, `*h*_{w} = ${fmt(s.hw, 2)} m`, { side: 'left' });
+  if (Math.abs(s.dH) > 0.02) dimV(ctx, sx + sw / 2 + 24, Math.min(ySupply, yWT), Math.max(ySupply, yWT), `Δ*H* = ${fmt(s.dH, 2)} m`, { side: 'right', color: C.water });
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = C.water; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx + sw / 2, yWT); ctx.lineTo(xL, yWT); ctx.stroke(); ctx.setLineDash([]);
+  // probe marker
+  const yP = yTop + m.z * sc;
+  ctx.strokeStyle = C.rust; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.moveTo(xL, yP); ctx.lineTo(xR, yP); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = C.rust; ctx.beginPath(); ctx.arc(xR, yP, 5, 0, 7); ctx.fill(); tag(ctx, xR + 10, yP + 4, `probe *z* = ${fmt(m.z, 2)} m (drag)`, { size: 11, color: C.rust, weight: 600 });
+  // object on the sand
+  if (s.obj !== 'none') {
+    const gObj = { brick: 19, person: 10, bolt: 77 }[s.obj]; const frac = Math.min(1, gObj / s.gsat); const ySink = m.boiling ? objSink : 0;
+    const hObj = s.obj === 'person' ? 78 : s.obj === 'brick' ? 26 : 30; const sink = ySink * (frac < 1 ? frac * hObj : (yBase - yTop) - 6);
+    const y0 = yTop - hObj + sink; const ox = cx;
+    if (s.obj === 'brick') { ctx.fillStyle = '#B5533C'; ctx.fillRect(ox - 26, y0, 52, hObj); ctx.strokeStyle = '#7A3524'; ctx.strokeRect(ox - 26, y0, 52, hObj); }
+    else if (s.obj === 'bolt') { ctx.fillStyle = '#6B7280'; ctx.fillRect(ox - 6, y0, 12, hObj); ctx.fillRect(ox - 14, y0, 28, 9); ctx.strokeStyle = '#374151'; ctx.strokeRect(ox - 6, y0, 12, hObj); ctx.strokeRect(ox - 14, y0, 28, 9); }
+    else { ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(ox, y0 + 9, 8, 0, 7); ctx.moveTo(ox, y0 + 17); ctx.lineTo(ox, y0 + 48); ctx.moveTo(ox - 16, y0 + 30); ctx.lineTo(ox + 16, y0 + 30); ctx.moveTo(ox, y0 + 48); ctx.lineTo(ox - 12, hObj + y0); ctx.moveTo(ox, y0 + 48); ctx.lineTo(ox + 12, hObj + y0); ctx.stroke(); ctx.lineWidth = 1; }
+    // re-draw sand over the sunk part
+    if (sink > 0) { ctx.save(); ctx.beginPath(); ctx.rect(xL, yTop, cw, yBase - yTop); ctx.clip(); ctx.fillStyle = `rgba(217,198,136,0.55)`; ctx.fillRect(xL, yTop, cw, yBase - yTop); ctx.restore(); }
+    tag(ctx, ox, yTop - hObj - 8 + sink, { brick: 'brick, 19 kN/m³', person: 'person, ≈10 kN/m³', bolt: 'steel bolt, 77 kN/m³' }[s.obj], { size: 11, align: 'center', color: C.ink2 });
+  }
+  // --- standpipes
+  const px0 = 545, span = 140; const zs = [0.25, 0.5, 0.75];
+  ctx.strokeStyle = C.ink2; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  zs.forEach((f, k) => { const zk = f * s.L, yk = yTop + zk * sc, xk = px0 + f * span; ctx.beginPath(); ctx.moveTo(xR, yk); ctx.lineTo(xk, yk); ctx.stroke(); });
+  ctx.setLineDash([]);
+  const levelY = z => yWT - m.iEff * z * sc; const tubeTop = Math.min(ySupply, yWT) - 40;
+  zs.forEach((f, k) => { const zk = f * s.L, yk = yTop + zk * sc, xk = px0 + f * span; standpipe(ctx, xk, yk, tubeTop, levelY(zk), { width: 8 }); tag(ctx, xk, tubeTop - 6, `${fmt(zk, 2)}`, { size: 10, align: 'center', color: C.ink2 }); });
+  tag(ctx, px0 - 10, tubeTop - 6, '*z* =', { size: 10, align: 'right', color: C.ink2 });
+  // piezometric line through the levels (tank level at z=0, supply at z=L)
+  ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(px0, yWT); ctx.lineTo(px0 + span, levelY(s.L)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = C.water; [[px0, yWT], [px0 + span, levelY(s.L)]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill(); });
+  if (m.boiling && m.i > m.icr + 1e-9) { const ySup = yWT - m.i * s.L * sc; ctx.strokeStyle = C.danger; ctx.lineWidth = 1.2; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(px0 + span, levelY(s.L)); ctx.lineTo(px0 + span, ySup); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = C.danger; ctx.beginPath(); ctx.arc(px0 + span, ySup, 3.5, 0, 7); ctx.fill(); tag(ctx, px0 + span - 8, ySup + 4, `supply ${fmt(s.hw + s.dH, 2)} m`, { size: 10, color: C.danger, align: 'right' }); tag(ctx, px0 + span + 8, levelY(s.L) + 4, `*i*_{cr}`, { size: 10, color: C.water }); }
+  else tag(ctx, px0 + span, levelY(s.L) - 8, `supply level`, { size: 10, color: C.water, align: 'center' });
+  tag(ctx, px0 + span / 2, tubeTop - 22, 'standpipe piezometers', { size: 12, weight: 600, align: 'center', color: C.ink });
+  tag(ctx, px0 - 8, yWT + 4, `tank`, { size: 10, color: C.water, align: 'right' });
+  tag(ctx, px0 + span / 2, tubeTop - 38, Math.abs(m.i) < 1e-6 ? 'all levels equal: no flow' : m.i > m.icr + 1e-9 ? `levels stop at ${fmt(m.icr * 100, 0)} cm per metre (*i*_{cr}): the extra ${fmt(s.dH - m.dHcr, 2)} m of head is spent boiling the sand` : `levels rise ${fmt(m.i * 100, 0)} cm per metre of depth: *i* = ${fmt(m.i, 2)}`, { size: 10.5, align: 'center', color: m.i > m.icr + 1e-9 ? C.danger : C.water });
+  // --- total pressure cells at the same three levels (black pads in the sand, wired out through the wall)
+  zs.forEach((f, k) => { const zk = f * s.L, yk = yTop + zk * sc; ctx.fillStyle = C.ink; ctx.fillRect(xR - 30, yk - 3, 20, 6); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(xR - 10, yk); ctx.lineTo(xR, yk); ctx.stroke(); ctx.fillStyle = C.water; ctx.beginPath(); ctx.arc(xR - 4, yk, 2.6, 0, 7); ctx.fill(); });
+  tag(ctx, xR - 34, yTop + zs[0] * s.L * sc - 8, 'total pressure cell', { size: 9.5, color: C.ink2, align: 'right' });
+  // readout table: σ from the cells, u from the standpipes, σ′ from the difference
+  { const tx0 = 486, ty0 = yBase + 12, colw = 60, lab0 = 84; const cx0 = k => tx0 + lab0 + colw * (k + 0.5);
+    ctx.fillStyle = '#fff'; ctx.fillRect(tx0 - 6, ty0 - 2, lab0 + 3 * colw + 12, 66); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(tx0 - 5.5, ty0 - 1.5, lab0 + 3 * colw + 11, 65);
+    text(ctx, tx0, ty0 + 11, 'level *z* (m) · kPa', { size: 10.5, weight: 600, color: C.ink2 }); zs.forEach((f, k) => text(ctx, cx0(k), ty0 + 11, fmt(f * s.L, 2), { size: 10.5, weight: 600, align: 'center', color: C.ink2 }));
+    const rows = [['*σ* cell', 'sig', C.ink], ['*u* standpipe', 'u', C.water], ['*σ′* = *σ* − *u*', 'eff', C.rust]];
+    rows.forEach(([lab, key, col], r) => { const yy = ty0 + 27 + r * 15; text(ctx, tx0, yy, lab, { size: 10.5, color: col, weight: 600 }); zs.forEach((f, k) => text(ctx, cx0(k), yy, `${fmt(m.at(f * s.L)[key], 1)}`, { size: 11, align: 'center', color: col, weight: 600 })); });
+  }
+  // --- force-chain lens at the probe depth
+  const lx = 232, ly = 128, lr = 54;
+  ctx.strokeStyle = C.rust; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(lx + lr * 0.75, ly + lr * 0.66); ctx.lineTo(xL, yP); ctx.stroke(); ctx.setLineDash([]);
+  ctx.save(); ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 7); ctx.clip();
+  ctx.fillStyle = `rgba(44,107,214,${0.12 + 0.35 * m.ratio})`; ctx.fillRect(lx - lr, ly - lr, 2 * lr, 2 * lr);
+  const eff = m.eff, effRef = Math.max(1e-6, m.effNoFlow); const w = Math.max(0, eff / effRef); const wob = m.boiling ? 3 : 0;
+  jig += dt * 9; const pos = g => [lx + g.x + wob * Math.sin(jig + g.ph), ly + g.y + wob * Math.cos(jig * 1.3 + g.ph)];
+  if (w > 0.02) { ctx.strokeStyle = C.rust; ctx.lineCap = 'round'; for (const [a, b] of contacts) { const pa = pos(grains[a]), pb = pos(grains[b]); ctx.lineWidth = 0.6 + 5 * w; ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke(); } }
+  for (const g of grains) { const p = pos(g); ctx.fillStyle = C.grain; ctx.strokeStyle = C.grainEdge; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p[0], p[1], g.r, 0, 7); ctx.fill(); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 7); ctx.stroke();
+  tag(ctx, lx, ly - lr - 8, 'grain contacts at the probe', { size: 11, align: 'center', color: C.ink2 });
+  tag(ctx, lx, ly + lr + 16, m.boiling ? 'no contact: the sand is a liquid' : w > 1 ? `contacts ${fmt(100 * (w - 1), 0)}% stronger than still water` : `contact force ${fmt(100 * w, 0)}% of still water`, { size: 11, align: 'center', color: m.boiling ? C.danger : C.rust, weight: 600 });
+  // --- stress profiles
+  const zmax = s.L; const pv = { x: 735, y: 60, w: 235, h: 380 };
+  const maxS = Math.max(m.base.sig, m.at(zmax).u, 1) * 1.08;
+  const prof = f => [[f(0), 0], [f(zmax), zmax]];
+  const ylabel = 'depth *z* (m)';
+  const series = [
+    { pts: prof(z => GW * s.hw + s.gsat * z), color: C.ink, width: 2.5 },
+    { pts: prof(z => GW * (s.hw + z)), color: C.water, width: 1.2, dash: true },
+    { pts: prof(z => m.at(z).u), color: C.water, width: 2.5 },
+    { pts: prof(z => m.gsub * z), color: C.rust, width: 1.2, dash: true },
+    { pts: prof(z => m.at(z).eff), color: C.rust, width: 2.5 },
+  ];
+  const { sx: psx, sy: psy } = plot(ctx, { ...pv, xmin: 0, xmax: maxS, ymin: 0, ymax: zmax, yDown: true, series, xlabel: 'stress (kPa)', ylabel });
+  ctx.strokeStyle = C.rust; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(pv.x, psy(m.z)); ctx.lineTo(pv.x + pv.w, psy(m.z)); ctx.stroke(); ctx.setLineDash([]);
+  [[m.sig, C.ink], [m.u, C.water], [m.eff, C.rust]].forEach(([v, col]) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(psx(v), psy(m.z), 4.5, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(); });
+  tag(ctx, psx(m.sig) + 6, psy(m.z) - 8, `*σ* ${fmt(m.sig, 1)}`, { size: 11, color: C.ink, weight: 600 });
+  tag(ctx, psx(m.u) + 6, psy(m.z) + 16, `*u* ${fmt(m.u, 1)}`, { size: 11, color: C.water, weight: 600 });
+  tag(ctx, psx(m.eff) - 6, psy(m.z) + 16, `*σ′* ${fmt(m.eff, 1)}`, { size: 11, color: C.rust, weight: 600, align: 'right' });
+  text(ctx, pv.x + pv.w, pv.y - 8, 'dashed: no flow', { size: 11, align: 'right', color: C.ink2 });
+  // title block
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(W - 262.5, H - 44.5, 252, 36); text(ctx, W - 254, H - 29, 'Seepage rig after Terzaghi · not to scale', { size: 10, color: C.ink2 });
+  text(ctx, W - 254, H - 15, Math.abs(m.i) > 1e-6 ? `water ×${fmt(LAB_SPEEDUP, 0)} faster than life; real ${fmt(m.vs * 100 * 3600, 0)} cm per hour` : 'water at rest', { size: 10, color: C.ink2 });
+}
+/* ============================== SITE: SHEET-PILE EXCAVATION ============================== */
+let seep = null, geo = null, view = null, derived = null, parts = new Particles(150), speedup = 1, piezos = [], drag = null, hover = null, attempts = [];
+function siteLayout() {
+  const s = st; const Lext = Math.max(16, 1.4 * s.T); const xmin = -Lext, xmax = s.B + Lext; const ytop = s.T + 3;
+  return { xmin, xmax, ytop, T: s.T, base: s.T - s.D, tip: s.T - s.D - s.d, wt: s.T - s.dw, B: s.B };
+}
+function siteCell(x, y, g) {
+  const s = st; const dx = seep.dx;
+  if (y < 0) return { type: T_ROCK };
+  const inPit = x > 0 && x < g.B;
+  if ((Math.abs(x) < dx * 0.55 || Math.abs(x - g.B) < dx * 0.55) && y > g.tip) return { type: T_ROCK }; // sheet piles
+  if (inPit) { if (y > g.base) return { type: T_FIXED, hfix: g.base }; return { type: T_SOIL, k: 10 ** s.kLog, mat: 1, n: 0.35 }; }
+  if (y > g.T) return { type: T_AIR };
+  if ((x < g.xmin + 1.5 * dx || x > g.xmax - 1.5 * dx) && y <= g.wt) return { type: T_FIXED, hfix: g.wt }; // far-field water table
+  if (y > g.wt) return { type: T_AIR };
+  return { type: T_SOIL, k: 10 ** s.kLog, mat: 1, n: 0.35 };
+}
+function siteRebuild(hard = false) {
+  geo = siteLayout(); const nx = 220; const dx = (geo.xmax - geo.xmin) / nx; const ny = Math.ceil(geo.ytop / dx);
+  if (hard || !seep || seep.nx !== nx || seep.ny !== ny || Math.abs(seep.dx - dx) > 1e-9 || Math.abs(seep.x0 - geo.xmin) > 1e-9) { seep = new Seepage(nx, ny, dx, geo.xmin, 0); }
+  const g = geo; seep.exitHead = (x, y) => (x > 0 && x < g.B) ? g.base : g.wt;
+  seep.build((x, y) => siteCell(x, y, g), (x, y) => (x > 0 && x < g.B) ? g.base + (g.wt - g.base) * clamp((g.base - y) / (st.d + 2), 0, 1) : g.wt);
+  parts.reset(); derived = null;
+  const mL = 40, mR = 24, mT = 30, mB = 60; const sc = Math.min((W - mL - mR) / (g.xmax - g.xmin), (H - mT - mB) / g.ytop);
+  const ox = mL + ((W - mL - mR) - sc * (g.xmax - g.xmin)) / 2 - g.xmin * sc, oy = H - mB;
+  view = { s: sc, X: x => ox + x * sc, Y: y => oy - y * sc, x: X => (X - ox) / sc, y: Y => (oy - Y) / sc };
+  piezos = piezos.filter(p => inSoil(p.x, p.y));
+}
+function inSoil(x, y) { const [i, j] = seep.cell(x, y); if (i < 0 || j < 0 || i >= seep.nx || j >= seep.ny) return false; return seep.type[seep.idx(i, j)] === T_SOIL; }
+function siteCompute() {
+  seep.computeVelocities(); const { nx, ny } = seep, g = geo;
+  const Q = Math.max(0, seep.fixedInflow((i, j, c) => seep.hfix[c] === g.base && seep.xc(i) > 0 && seep.xc(i) < g.B));
+  const Hh = g.wt - g.base, dh = Hh / st.Nd, dpsi = 10 ** st.kLog * dh, Nf = Q / dpsi;
+  const validH = new Uint8Array(nx * ny), pfield = new Float64Array(nx * ny), validP = new Uint8Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; const soil = seep.type[c] === T_SOIL; validH[c] = soil && seep.S[c] > 0.5 ? 1 : 0; validP[c] = soil ? 1 : 0; pfield[c] = seep.h[c] - seep.yc(j); }
+  const psi = seep.streamFunction(); const validPsi = new Uint8Array((nx + 1) * (ny + 1));
+  for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) { let ok = 1, any = 0; for (let dj = -1; dj <= 0; dj++) for (let di = -1; di <= 0; di++) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= ny) continue; const c = jj * nx + ii; const t = seep.type[c]; if (t === T_AIR || (t === T_SOIL && seep.S[c] <= 0.5)) ok = 0; if (t === T_SOIL && seep.S[c] > 0.5) any = 1; } validPsi[j * (nx + 1) + i] = ok && any ? 1 : 0; }
+  const eq = [], fl = []; for (let m = 1; m < st.Nd; m++) eq.push(isolines(seep.h, nx, ny, g.base + m * dh, validH));
+  // stream function: psi = 0 at the base of the domain; flow into the pit comes from both sides so contour |psi| levels on each side
+  const half = Q / 2; const nfl = Math.floor(half / dpsi + 1e-6);
+  const sgn = Math.sign(psi[ny * (nx + 1) + Math.round((-g.T - g.xmin) / seep.dx)] || 1);
+  for (let m = 1; m <= Math.min(nfl, 30); m++) { fl.push(isolines(psi, nx + 1, ny + 1, m * dpsi * sgn, validPsi)); fl.push(isolines(psi, nx + 1, ny + 1, -m * dpsi * sgn, validPsi)); }
+  const phreatic = isolines(pfield, nx, ny, 0, validP);
+  // exit gradient at the pit floor and Terzaghi heave
+  let iExit = 0; const jb = seep.cell(0, g.base - seep.dx / 2)[1]; let heaveSum = 0, heaveN = 0; const jt = seep.cell(0, g.tip - seep.dx / 2)[1]; const jtt = Math.max(0, jt);
+  for (let i = 0; i < nx; i++) { const x = seep.xc(i); if (x <= 0 || x >= g.B) continue; const c = seep.idx(i, jb); if (seep.type[c] !== T_SOIL) continue; const ie = 2 * (seep.h[c] - g.base) / seep.dx; if (ie > iExit) iExit = ie;
+    const near = Math.min(x, g.B - x) <= Math.max(st.d / 2, 1.1 * seep.dx) + 1e-9; if (near && jtt < ny) { const ct = seep.idx(i, jtt); if (seep.type[ct] === T_SOIL) { heaveSum += seep.h[ct] - g.base; heaveN++; } } }
+  const hAvg = heaveN ? heaveSum / heaveN : 0; const gsub = 20 - GW; const icr = gsub / GW;
+  const FSexit = iExit > 1e-9 ? icr / iExit : Infinity; const FSheave = hAvg > 1e-9 ? gsub * st.d / (GW * hAvg) : Infinity;
+  const med = medianSpeed(seep);
+  derived = { Q, dh, dpsi, Nf, eq, fl, phreatic, iExit, FSexit, hAvg, FSheave, icr, med, psi };
+  if (!derived.img || derived.img.width !== nx) { derived.img = document.createElement('canvas'); derived.img.width = nx; derived.img.height = ny; }
+  const ic = derived.img.getContext('2d'); const id = ic.createImageData(nx, ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; const p = ((ny - 1 - j) * nx + i) * 4; const sat = seep.type[c] === T_SOIL ? clamp(seep.S[c], 0, 1) : 0; id.data[p] = 44; id.data[p + 1] = 107; id.data[p + 2] = 214; id.data[p + 3] = Math.round(110 * sat); }
+  ic.putImageData(id, 0, 0);
+  speedup = med > 0 ? 9 / (med * view.s) : 1;
+}
+function siteReading(p) {
+  const h = seep.headAt(p.x, p.y); const [i, j] = seep.cell(p.x, p.y);
+  let sig = 0; for (let jj = seep.ny - 1; jj >= j; jj--) { const cc = seep.idx(i, jj); const t = seep.type[cc]; const dz = jj === j ? (seep.yc(jj) + seep.dx / 2 - p.y) : seep.dx; if (t === T_SOIL) sig += (seep.S[cc] > 0.5 ? 20 : 18) * dz; }
+  const dry = h === null || h < p.y; const u = dry ? 0 : GW * (h - p.y); return { h, dry, u, sig, eff: sig - u, hp: dry ? 0 : h - p.y };
+}
+function drawSite() {
+  const g = geo, { X, Y, s } = view;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = pattern(ctx, 'rock'); ctx.fillRect(X(g.xmin) - 2, Y(0), X(g.xmax) - X(g.xmin) + 4, H - 40 - Y(0));
+  ctx.fillStyle = pattern(ctx, 'sand'); ctx.fillRect(X(g.xmin) - 2, Y(g.T), X(g.xmax) - X(g.xmin) + 4, Y(0) - Y(g.T));
+  // pit
+  ctx.fillStyle = '#fff'; ctx.fillRect(X(0), Y(g.T + 3), X(g.B) - X(0), Y(g.base) - Y(g.T + 3));
+  if (derived) { ctx.save(); ctx.beginPath(); ctx.rect(X(g.xmin) - 2, Y(g.T), X(g.xmax) - X(g.xmin) + 4, Y(0) - Y(g.T)); ctx.rect(X(0), Y(g.base), X(g.B) - X(0), Y(0) - Y(g.base)); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(derived.img, X(seep.x0), Y(seep.y0 + seep.ny * seep.dx), seep.nx * seep.dx * s, seep.ny * seep.dx * s); ctx.restore(); }
+  // ground lines
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(X(g.xmin) - 2, Y(g.T)); ctx.lineTo(X(0), Y(g.T)); ctx.moveTo(X(g.B), Y(g.T)); ctx.lineTo(X(g.xmax) + 2, Y(g.T)); ctx.moveTo(X(0), Y(g.base)); ctx.lineTo(X(g.B), Y(g.base)); ctx.moveTo(X(g.xmin) - 2, Y(0)); ctx.lineTo(X(g.xmax) + 2, Y(0)); ctx.stroke();
+  // flow net
+  if (derived && st.showNet) {
+    const segs = (list, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); for (const sg of list) for (const [a, b, c, d] of sg) { ctx.moveTo(a, b); ctx.lineTo(c, d); } ctx.stroke(); };
+    segs(derived.fl.map(sg => sg.map(([i0, j0, i1, j1]) => [X(seep.x0 + i0 * seep.dx), Y(seep.y0 + j0 * seep.dx), X(seep.x0 + i1 * seep.dx), Y(seep.y0 + j1 * seep.dx)])), 'rgba(44,107,214,0.85)', 1.2);
+    segs(derived.eq.map(sg => sg.map(([i0, j0, i1, j1]) => [X(seep.xc(i0)), Y(seep.yc(j0)), X(seep.xc(i1)), Y(seep.yc(j1))])), 'rgba(22,33,58,0.75)', 1.1);
+  }
+  if (derived) { ctx.strokeStyle = C.water; ctx.lineWidth = 2.5; ctx.beginPath(); for (const [i0, j0, i1, j1] of derived.phreatic) { ctx.moveTo(X(seep.xc(i0)), Y(seep.yc(j0))); ctx.lineTo(X(seep.xc(i1)), Y(seep.yc(j1))); } ctx.stroke(); }
+  if (derived && st.showPart) { ctx.fillStyle = C.water; for (const p of parts.p) { ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 1.7, 0, 7); ctx.fill(); } }
+  // heave prism outline
+  if (derived) { ctx.strokeStyle = C.rust; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.strokeRect(X(0) + 2, Y(g.base), X(st.d / 2) - X(0), Y(g.tip) - Y(g.base)); ctx.strokeRect(X(g.B - st.d / 2), Y(g.base), X(g.B) - X(g.B - st.d / 2) - 2, Y(g.tip) - Y(g.base)); ctx.setLineDash([]);
+    tag(ctx, X(g.B / 2), Y(g.tip) + 14, `heave prism *d*/2 wide, average excess head ${fmt(derived.hAvg, 2)} m`, { size: 10, align: 'center', color: C.rust }); }
+  // sheet piles
+  ctx.fillStyle = C.ink; [0, g.B].forEach(x => ctx.fillRect(X(x) - 2.5, Y(g.T + 1), 5, Y(g.tip) - Y(g.T + 1)));
+  // water in the pit (pumped down) and pump
+  ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(0), Y(g.base) - 1); ctx.lineTo(X(g.B), Y(g.base) - 1); ctx.stroke();
+  const pxp = X(g.B / 2), pyp = Y(g.base); ctx.fillStyle = C.ink; ctx.fillRect(pxp - 8, pyp - 14, 16, 14); ctx.strokeStyle = C.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(pxp, pyp - 14); ctx.lineTo(pxp, Y(g.T + 2)); ctx.lineTo(X(g.B) + 30, Y(g.T + 2)); ctx.stroke();
+  tag(ctx, X(g.B) + 34, Y(g.T + 2) + 4, `pump keeps the pit dry: ${derived ? fmt(derived.Q * 60000, derived.Q * 60000 < 10 ? 1 : 0) + ' L/min per metre of pit' : ''}`, { size: 11, color: C.ink });
+  // water table symbols and labels
+  wtSymbol(ctx, X(g.xmin) + 30, Y(g.wt)); tag(ctx, X(g.xmin) + 42, Y(g.wt) - 4, `water table ${fmt(st.dw, 1)} m down`, { size: 11, color: C.water, weight: 600 });
+  tag(ctx, X(g.xmax) - 6, Y(g.T) - 6, 'ground level', { size: 11, color: C.ink2, align: 'right' });
+  tag(ctx, X(g.xmin) + 6, Y(0) + 14, 'rock (impermeable)', { size: 11, color: C.ink2 });
+  dimV(ctx, X(g.B) + 18, Y(g.T), Y(g.base), `*D* = ${fmt(st.D, 1)} m`, { side: 'right' });
+  dimV(ctx, X(g.B) + 18, Y(g.base), Y(g.tip), `*d* = ${fmt(st.d, 1)} m`, { side: 'right', color: C.rust });
+  dimH(ctx, X(0) + 4, X(g.B) - 4, Y(g.base + 1.6), `*B* = ${fmt(st.B, 0)} m`, {});
+  tag(ctx, X(0) - 6, Y(g.T + 0.3) - 4, 'sheet pile', { size: 10, align: 'right', color: C.ink2 });
+  dimV(ctx, X(g.xmin) + 14, Y(g.T), Y(0), `sand *T* = ${fmt(st.T, 0)} m`, { side: 'right' });
+  // piezometers
+  piezos.forEach((p, k) => { const r = siteReading(p); const xt = X(p.x), yt = Y(p.y), yTop = Y(g.T + 2.6); standpipe(ctx, xt, yt, yTop, r.dry ? null : Y(r.h), { width: 7, color: drag && drag.p === p ? C.rust : C.ink }); tag(ctx, xt, yTop - 6, `P${k + 1} ${r.dry ? 'dry' : 'h = ' + fmt(r.h, 2) + ' m'}`, { size: 11, align: 'center', weight: 600, color: C.water }); });
+  if (hover && !drag && inSoil(hover.x, hover.y)) { const r = siteReading(hover); tag(ctx, X(hover.x) + 12, Y(hover.y) - 10, r.dry ? 'probe: above the water table' : `probe: *h* = ${fmt(r.h, 2)} m, *u* = ${fmt(r.u, 0)} kPa, *σ′* = ${fmt(r.eff, 0)} kPa`, { size: 11, color: C.ink, border: C.line }); }
+  const bar = 5 * s; ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(g.xmin) + 6, H - 16); ctx.lineTo(X(g.xmin) + 6 + bar, H - 16); ctx.stroke(); text(ctx, X(g.xmin) + 12 + bar, H - 12, '5 m', { size: 11, color: C.ink2 });
+  ctx.fillStyle = '#fff'; ctx.fillRect(W - 240, H - 36, 232, 30); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(W - 239.5, H - 35.5, 231, 29);
+  text(ctx, W - 232, H - 22, 'Excavation inside sheet piles, pumped dry', { size: 11, color: C.ink2 }); text(ctx, W - 232, H - 10, derived && derived.med > 0 ? `water ×${fmt(speedup / 1000, 0)},000 faster than life; real ${fmt(derived.med * 86400 * 100, 0)} cm per day` : `Seepage solved live on a ${seep.nx} × ${seep.ny} grid`, { size: 10, color: C.ink2 });
+}
+/* ============================== shared loop, reports, controls ============================== */
+const TOL = () => 3e-5 * Math.max(1, geo ? geo.wt - geo.base : 1);
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (running) { running(dt); }
+  if (st.scene === 'lab') {
+    const m = labCalc(); objSink += ((m.boiling ? 1 : 0) - objSink) * Math.min(1, dt * 1.6);
+    drawLab(dt); $('#solveState').textContent = '';
+  } else {
+    const solving = seep.iter < 4 || (seep.iter < 300 && (seep.change > TOL() || (seep.dS > 2e-3 && seep.iter < seep.freezeS)));
+    if (solving) { seep.step(150); if (seep.iter % 2 === 0 || !derived) siteCompute(); } else if (!derived) siteCompute();
+    $('#solveState').textContent = solving ? `solving… iteration ${seep.iter}` : `converged after ${seep.iter} iterations`;
+    if (st.showPart && derived) parts.step(seep, dt, speedup); else parts.reset();
+    drawSite();
+    if (!solving && !frame.reported) { frame.reported = true; report(); }
+    if (solving) frame.reported = false;
+  }
+  requestAnimationFrame(frame);
+}
+function report() {
+  if (st.scene === 'lab') {
+    const s = st, m = labCalc(); const drop = m.effNoFlow > 0 ? 100 * (1 - m.eff / m.effNoFlow) : 0;
+    const status = m.boiling ? `<div class="status bad">Boiling. <span class="eq">i</span> = ${fmt(m.i, 2)} ≥ <span class="eq">i<sub>cr</sub></span> = ${fmt(m.icr, 2)}: effective stress is zero from top to bottom, the grains are afloat and the load cell reads nothing.</div>`
+      : m.i > 0 ? `<div class="status ${m.FS < 1.5 ? 'warn' : 'info'}">Upward flow. Effective stress at the probe is ${fmt(drop, 0)}% lower than with still water. Safety against boiling <span class="eq">i<sub>cr</sub>/i</span> = ${fmt(m.FS, 2)}.</div>`
+      : m.i < 0 ? `<div class="status good">Downward flow. The water drags the grains together: effective stress is ${fmt(-drop, 0)}% higher than with still water.</div>` : `<div class="status">Still water. Effective stress is the submerged weight of the sand above the probe.</div>`;
+    $('#results').innerHTML = `<h2>At the probe, ${fmt(m.z, 2)} m into the sand</h2>
+      <div class="big"><span class="sw bg-total"></span><span class="lab">Total stress <span class="eq">σ</span></span><span class="v c-total">${fmt(m.sig, 1)}<small>kPa</small></span>
+      <span class="sw bg-water"></span><span class="lab">Pore pressure <span class="eq">u</span></span><span class="v c-water">${fmt(m.u, 1)}<small>kPa</small></span>
+      <span class="sw bg-eff"></span><span class="lab">Effective stress <span class="eq">σ′</span></span><span class="v c-eff">${fmt(m.eff, 1)}<small>kPa</small></span></div>${status}
+      <div class="work"><div><span class="eq">i = ΔH/L</span> = ${fmt(s.dH, 2)} / ${fmt(s.L, 2)} = ${fmt(m.i, 2)}; <span class="eq">i<sub>cr</sub> = γ′/γ<sub>w</sub></span> = ${fmt(m.gsub, 2)} / 9.81 = ${fmt(m.icr, 2)}; boiling at <span class="eq">ΔH<sub>cr</sub></span> = ${fmt(m.dHcr, 2)} m</div></div>`;
+    $('#workPanel').innerHTML = `<h2>Working at the probe</h2><div class="work">
+      <div><span class="eq">σ = γ<sub>w</sub>h<sub>w</sub> + γ<sub>sat</sub>z</span> = 9.81 × ${fmt(s.hw, 2)} + ${fmt(s.gsat, 1)} × ${fmt(m.z, 2)} = <b>${fmt(m.sig, 1)} kPa</b> — flow does not change this line: the sand and the water above it weigh what they weigh.</div>
+      ${m.i > m.icr + 1e-9 ? `<div><span class="eq">u = γ<sub>w</sub>(h<sub>w</sub> + z) + γ<sub>w</sub>·i·z</span> would give 9.81 × ${fmt(s.hw + m.z, 2)} + 9.81 × ${fmt(m.i, 2)} × ${fmt(m.z, 2)} = ${fmt(GW * (s.hw + m.z) + GW * m.i * m.z, 1)} kPa, more than <span class="eq">σ</span>. Water cannot push harder than the weight above it: the grains separate, <span class="eq">u = σ</span> = <b>${fmt(m.u, 1)} kPa</b>, the standpipes stop at the <span class="eq">i<sub>cr</sub></span> line and the extra head is spent boiling the sand.</div>
+      <div><span class="eq">σ′ = σ − u</span> = <b>0 kPa</b> — the formula <span class="eq">(γ′ − γ<sub>w</sub>i)·z</span> = (${fmt(m.gsub, 2)} − ${fmt(GW * m.i, 2)}) × ${fmt(m.z, 2)} = ${fmt((m.gsub - GW * m.i) * m.z, 1)} kPa is negative, which sand cannot carry: it holds only up to <span class="eq">i<sub>cr</sub></span> = ${fmt(m.icr, 2)}.</div>` : `<div><span class="eq">u = γ<sub>w</sub>(h<sub>w</sub> + z) + γ<sub>w</sub>·i·z</span> = 9.81 × ${fmt(s.hw + m.z, 2)} ${m.i >= 0 ? '+' : '−'} 9.81 × ${fmt(Math.abs(m.i), 2)} × ${fmt(m.z, 2)} = <b>${fmt(m.u, 1)} kPa</b> — read it straight off the standpipe: the water stands ${fmt(s.hw + m.i * m.z, 2)} m above the sand surface at this depth.</div>
+      <div><span class="eq">σ′ = σ − u = (γ′ − γ<sub>w</sub>i)·z</span> = (${fmt(m.gsub, 2)} ${m.i >= 0 ? '−' : '+'} ${fmt(GW * Math.abs(m.i), 2)}) × ${fmt(m.z, 2)} = <b>${fmt(m.eff, 1)} kPa</b>${m.i > 0 ? ` — the seepage force <span class="eq">γ<sub>w</sub>·i</span> = ${fmt(GW * m.i, 1)} kN per m³ of sand is pushing up on the grains.` : ''}</div>`}
+      <div>The three levels carry the two instruments a real site has: a total pressure cell (reads <span class="eq">σ</span>, and it does not move when the flow changes) and a standpipe (reads <span class="eq">u</span>). Subtract and you have what the grains carry.</div></div>`;
+    $('#challenge').innerHTML = `<h2>Challenge: find the critical head</h2><p>Before touching the supply tank, have the class predict the head <span class="eq">ΔH</span> that will make this sand boil, from the unit weight alone. Then run the experiment and stop at the first boil.</p>
+      <div class="big"><span class="sw bg-eff"></span><span class="lab">Prediction from theory <span class="eq">ΔH<sub>cr</sub> = L·γ′/γ<sub>w</sub></span></span><span class="v c-eff">${fmt(m.dHcr, 2)}<small>m</small></span></div>
+      <p class="muted">Loose sand (18.5 kN/m³) boils at <span class="eq">i</span> = 0.89, dense sand (21) at 1.14. Sand type, grain size and permeability do not appear: they change how much water it takes, not the head.</p>`;
+    strip();
+    return;
+  }
+  const d = derived, g = geo; if (!d) return; const perM = d.Q * 60000; const total = d.Q * st.Lpit;
+  const rows = piezos.map((p, k) => { const r = siteReading(p); return `<tr><td>P${k + 1}</td><td class="n">${fmt(p.x, 1)}, ${fmt(p.y, 1)}</td><td class="n">${r.dry ? '<span class="muted">dry</span>' : fmt(r.h, 2)}</td><td class="n c-water">${fmt(r.u, 0)}</td><td class="n c-total">${fmt(r.sig, 0)}</td><td class="n c-eff">${fmt(r.eff, 0)}</td></tr>`; }).join('');
+  $('#results').innerHTML = `<h2>Seepage into the pit</h2>
+    <div class="big"><span class="sw bg-water"></span><span class="lab">Pumping, per metre of pit</span><span class="v c-water">${fmt(perM, perM < 10 ? 1 : 0)}<small>L/min</small></span>
+    <span class="sw bg-water"></span><span class="lab">Whole pit, ${fmt(st.Lpit, 0)} m long</span><span class="v c-water">${volLabel(total).replace(/ (\S+)$/, '<small>$1</small>')}</span>
+    <span class="sw bg-eff"></span><span class="lab">Exit gradient at the floor <span class="eq">i<sub>exit</sub></span></span><span class="v c-eff">${fmt(d.iExit, 2)}</span>
+    <span class="sw bg-eff"></span><span class="lab">Safety against boiling <span class="eq">i<sub>cr</sub>/i<sub>exit</sub></span></span><span class="v ${d.FSexit < 2 ? 'c-bad' : 'c-ok'}">${isFinite(d.FSexit) ? fmt(d.FSexit, 2) : '–'}</span>
+    <span class="sw bg-eff"></span><span class="lab">Safety against block heave (Terzaghi)</span><span class="v ${d.FSheave < 1.5 ? 'c-bad' : 'c-ok'}">${isFinite(d.FSheave) ? fmt(d.FSheave, 2) : '–'}</span></div>
+    ${d.FSexit < 1 ? '<div class="status bad">The floor of the pit is boiling: sand is flowing up with the water and the sheet piles are losing their toe support.</div>' : d.FSheave < 1.5 || d.FSexit < 2 ? '<div class="status warn">Legal but uncomfortable: codes ask for 1.5 against heave and about 2 against boiling. Drive the piles deeper or lower the outside water table with wells.</div>' : '<div class="status good">The floor is safe against heave and boiling with the usual margins.</div>'}
+    <div class="work"><div><span class="eq">i<sub>exit</sub></span> is the head loss over the last bit of the path, at the floor next to the wall, where the flow lines bunch up. <span class="eq">i<sub>cr</sub></span> = ${fmt(d.icr, 2)} for this sand.</div>
+    <div>Heave: uplift on a soil block <span class="eq">d</span> deep and <span class="eq">d</span>/2 wide next to the wall is <span class="eq">γ<sub>w</sub>·h<sub>avg</sub></span> = 9.81 × ${fmt(d.hAvg, 2)} = ${fmt(GW * d.hAvg, 1)} kPa; its submerged weight is <span class="eq">γ′·d</span> = ${fmt(20 - GW, 2)} × ${fmt(st.d, 1)} = ${fmt((20 - GW) * st.d, 1)} kPa.</div>
+    <div class="muted">A drop of water takes about ${timeLabel((st.d + st.D + 4) / Math.max(d.med, 1e-12))} to get under the wall and up into the pit; the animation runs ${fmt(speedup / 1e3, 0)},000× faster.</div></div>`;
+  $('#workPanel').innerHTML = `<h2>Piezometer readings</h2>${piezos.length ? `<table class="t"><tr><th>Tube</th><th class="n">tip x, z (m)</th><th class="n">head <span class="eq">h</span> (m)</th><th class="n"><span class="eq">u</span> (kPa)</th><th class="n"><span class="eq">σ<sub>v</sub></span> (kPa)</th><th class="n"><span class="eq">σ′<sub>v</sub></span> (kPa)</th></tr>${rows}</table>` : '<p class="muted">Click in the sand to plant a piezometer. Try one under the floor of the pit and one outside the wall at the same depth.</p>'}
+    <div class="work"><div>Under the pit floor the total stress is only the sand below the floor, but the pore pressure still remembers the water table outside. That squeeze on <span class="eq">σ′</span> is the whole story of heave.</div></div>`;
+  challengeReport(); strip();
+}
+function strip() {
+  const el = $('#strip');
+  if (st.scene === 'lab') { const m = labCalc(); el.innerHTML = [[`${fmt(m.i, 2)}`, 'gradient i = ΔH/L', m.i > 0 ? 'c-water' : 'c-total'], [`${fmt(m.icr, 2)}`, 'critical gradient γ′/γ<sub>w</sub>', 'c-eff'], [isFinite(m.FS) ? fmt(m.FS, 2) : '–', 'safety i<sub>cr</sub>/i', m.FS < 1.5 ? 'c-bad' : 'c-ok'], [m.boiling ? 'boiling' : m.i > 0 ? 'upward' : m.i < 0 ? 'downward' : 'still', 'flow', m.boiling ? 'c-bad' : 'c-total']].map(([v, l, cls]) => `<div><div class="sv ${cls}">${v}</div><div class="sl">${l}</div></div>`).join(''); return; }
+  const d = derived; if (!d) return; const perM = d.Q * 60000;
+  el.innerHTML = [[`${fmt(perM, perM < 10 ? 1 : 0)} <small>L/min per m</small>`, 'pumping', 'c-water'], [`${fmt(d.iExit, 2)}`, 'exit gradient at the floor', 'c-eff'], [isFinite(d.FSexit) ? fmt(d.FSexit, 2) : '–', 'safety against boiling', d.FSexit < 2 ? 'c-bad' : 'c-ok'], [isFinite(d.FSheave) ? fmt(d.FSheave, 2) : '–', 'safety against heave', d.FSheave < 1.5 ? 'c-bad' : 'c-ok']].map(([v, l, cls]) => `<div><div class="sv ${cls}">${v}</div><div class="sl">${l}</div></div>`).join('');
+}
+function challengeReport() {
+  const d = derived; if (!d) return; const len = 2 * (st.D + st.d + 1); const pass = d.FSheave >= 1.5 && d.FSexit >= 2;
+  $('#challenge').innerHTML = `<h2>Challenge: the safe pit with the least steel</h2><p class="muted">Brief: a ${fmt(st.B, 0)} m wide pit, ${fmt(st.D, 1)} m deep, in this sand with the water table ${fmt(st.dw, 1)} m down. Choose the embedment <span class="eq">d</span>. Sheet piles cost about $1,100 per metre of wall length per metre of depth, and every extra metre of pumping runs for the life of the job.</p>
+    <ul class="checks"><li class="${d.FSheave >= 1.5 ? 'pass' : 'fail'}">Heave safety ≥ 1.5 (now ${isFinite(d.FSheave) ? fmt(d.FSheave, 2) : '–'})</li><li class="${d.FSexit >= 2 ? 'pass' : 'fail'}">Boiling safety ≥ 2 (now ${isFinite(d.FSexit) ? fmt(d.FSexit, 2) : '–'})</li></ul>
+    <div class="score">${fmt(len, 1)} m of sheet pile per metre of pit <span class="muted" style="font-size:.95rem;font-weight:500">(two walls × (${fmt(st.D, 1)} + ${fmt(st.d, 1)} + 1 m stick-up)) — ${pass ? '<span class="c-ok">passes</span>' : '<span class="c-bad">does not pass</span>'}</span></div>
+    <div class="btnrow"><button class="btn primary" id="logAttempt" type="button">Log this attempt</button><button class="btn" id="clearAttempts" type="button">Clear</button></div>
+    ${attempts.length ? `<table class="t"><tr><th>#</th><th class="n">d (m)</th><th class="n">WT depth</th><th class="n">pumping L/min/m</th><th class="n">heave FS</th><th class="n">boil FS</th><th class="n">steel m/m</th><th>Result</th></tr>${attempts.map((a, i) => `<tr class="${a.best ? 'sel' : ''}"><td>${i + 1}</td><td class="n">${fmt(a.d, 1)}</td><td class="n">${fmt(a.dw, 1)}</td><td class="n">${fmt(a.q, 1)}</td><td class="n">${fmt(a.fh, 2)}</td><td class="n">${fmt(a.fe, 2)}</td><td class="n">${fmt(a.len, 1)}</td><td class="${a.pass ? 'pass' : 'fail'}">${a.pass ? 'pass' : 'fail'}</td></tr>`).join('')}</table>` : ''}`;
+  $('#logAttempt').addEventListener('click', () => { attempts.push({ d: st.d, dw: st.dw, q: d.Q * 60000, fh: d.FSheave, fe: d.FSexit, len, pass }); const best = attempts.filter(a => a.pass).sort((a, b) => a.len - b.len)[0]; attempts.forEach(a => a.best = a === best); challengeReport(); });
+  $('#clearAttempts').addEventListener('click', () => { attempts = []; challengeReport(); });
+}
+/* ---------- controls ---------- */
+const ctls = $('#ctls'); const c = {};
+const sceneSeg = segmented(ctls, { label: 'Scene', value: 'lab', options: [{ label: 'Lab: the seepage rig', value: 'lab' }, { label: 'Site: excavation inside sheet piles', value: 'site' }], onInput: v => { st.scene = v; running = null; syncScene(); } });
+const labBox = dom('div'), siteBox = dom('div'); ctls.append(labBox, siteBox);
+labBox.appendChild(dom('h2', { text: 'The rig' }));
+c.dH = control(labBox, { id: 'dH', label: 'Supply tank above the tank level <span class="eq">ΔH</span> (negative = below)', min: -1, max: 1.5, step: 0.02, value: st.dH, unit: 'm', onInput: v => { st.dH = v; report(); } });
+c.L = control(labBox, { id: 'L', label: 'Sand sample length <span class="eq">L</span>', min: 0.3, max: 1.5, step: 0.05, value: st.L, unit: 'm', onInput: v => { st.L = v; st.z = Math.min(st.z, v); c.z.setRange(0, v); report(); } });
+c.hw = control(labBox, { id: 'hw', label: 'Water above the sand <span class="eq">h<sub>w</sub></span>', min: 0, max: 0.5, step: 0.05, value: st.hw, unit: 'm', onInput: v => { st.hw = v; report(); } });
+c.gsat = segmented(labBox, { label: 'Sand', value: 20, options: [{ label: 'Loose, γ<sub>sat</sub> 18.5', value: 18.5 }, { label: 'Medium, 20', value: 20 }, { label: 'Dense, 21', value: 21 }], onInput: v => { st.gsat = v; report(); } });
+c.z = control(labBox, { id: 'z', label: 'Probe depth <span class="eq">z</span> below the sand surface', min: 0, max: st.L, step: 0.05, value: st.z, unit: 'm', onInput: v => { st.z = v; report(); } });
+c.obj = segmented(labBox, { label: 'Put something on the sand', value: 'none', options: [{ label: 'Nothing', value: 'none' }, { label: 'Brick', value: 'brick' }, { label: 'Person', value: 'person' }, { label: 'Steel bolt', value: 'bolt' }], onInput: v => { st.obj = v; } });
+const lr = dom('div', { class: 'btnrow' }); labBox.appendChild(lr);
+button(lr, 'Run: raise the supply slowly', () => { st.dH = 0; c.dH.set(0, false); running = dt => { const m = labCalc(); const target = m.dHcr + 0.25; st.dH = Math.min(target, st.dH + 0.09 * dt); c.dH.set(st.dH, false); report(); if (st.dH >= target - 1e-9) running = null; }; }, 'btn primary');
+button(lr, 'Reset rig', () => { running = null; st.dH = 0.4; st.L = 1; st.hw = 0.3; st.z = 0.5; st.gsat = 20; st.obj = 'none'; c.dH.set(0.4, false); c.L.set(1, false); c.hw.set(0.3, false); c.z.setRange(0, 1); c.z.set(0.5, false); c.gsat.set(20, false); c.obj.set('none', false); report(); });
+siteBox.appendChild(dom('h2', { text: 'The excavation' }));
+c.D = control(siteBox, { id: 'D', label: 'Excavation depth <span class="eq">D</span>', min: 2, max: 10, step: 0.5, value: st.D, unit: 'm', onInput: v => { st.D = v; c.d.setRange(0.5, st.T - v - 1); siteRebuild(true); } });
+c.d = control(siteBox, { id: 'd', label: 'Sheet-pile embedment below the floor <span class="eq">d</span>', min: 0.5, max: st.T - st.D - 1, step: 0.5, value: st.d, unit: 'm', onInput: v => { st.d = v; siteRebuild(); } });
+c.B = control(siteBox, { id: 'B', label: 'Pit width <span class="eq">B</span>', min: 4, max: 30, step: 1, value: st.B, unit: 'm', onInput: v => { st.B = v; siteRebuild(true); } });
+c.dw = control(siteBox, { id: 'dw', label: 'Water table depth outside (lower it with wells)', min: 0, max: 8, step: 0.5, value: st.dw, unit: 'm', onInput: v => { st.dw = v; siteRebuild(); } });
+c.T = control(siteBox, { id: 'T', label: 'Sand thickness to rock <span class="eq">T</span>', min: 8, max: 25, step: 1, value: st.T, unit: 'm', onInput: v => { st.T = v; c.d.setRange(0.5, v - st.D - 1); siteRebuild(true); } });
+c.k = control(siteBox, { id: 'k', label: 'Sand: log<sub>10</sub> k (m/s)', min: -6, max: -3, step: 0.5, value: st.kLog, unit: '', onInput: v => { st.kLog = v; siteRebuild(); } });
+c.Lpit = control(siteBox, { id: 'Lpit', label: 'Length of the pit (for the pump size)', min: 5, max: 100, step: 5, value: st.Lpit, unit: 'm', onInput: v => { st.Lpit = v; report(); } });
+const tg = dom('div', { class: 'toggles' }); siteBox.appendChild(tg);
+checkbox(tg, { id: 'showNet', label: 'Flow net', value: true, onInput: v => { st.showNet = v; } });
+checkbox(tg, { id: 'showPart', label: 'Water particles', value: true, onInput: v => { st.showPart = v; } });
+c.Nd = control(siteBox, { id: 'Nd', label: 'Equipotential drops <span class="eq">N<sub>d</sub></span>', min: 4, max: 20, step: 1, value: st.Nd, unit: '', onInput: v => { st.Nd = v; derived = null; frame.reported = false; } });
+const sr = dom('div', { class: 'btnrow' }); siteBox.appendChild(sr);
+button(sr, 'Remove piezometers', () => { piezos = []; report(); });
+button(sr, 'Default pit', () => { Object.assign(st, { T: 15, D: 8, d: 4, B: 12, dw: 0.5, kLog: -4 }); c.T.set(15, false); c.D.set(8, false); c.d.setRange(0.5, 6); c.d.set(4, false); c.B.set(12, false); c.dw.set(0.5, false); c.k.set(-4, false); siteRebuild(true); });
+function syncScene() {
+  const lab = st.scene === 'lab'; labBox.style.display = lab ? '' : 'none'; siteBox.style.display = lab ? 'none' : '';
+  $('#hintText').textContent = lab ? 'Drag the ▤ tab on the supply tank up and down · drag the red probe · the standpipes read the pore pressure at three depths' : 'Click in the sand to plant a piezometer · drag it · double-click to remove · hover for the head and stresses at any point';
+  $('#legend').innerHTML = lab ? '<span><i style="background:#16213A"></i>total stress σ</span><span><i style="background:#2C6BD6"></i>pore pressure u</span><span><i style="background:#D9480F"></i>effective stress σ′</span><span><i class="dash" style="color:#4E5A6E"></i>same, with no flow</span>' : '<span><i style="background:#16213A"></i>equipotential</span><span><i style="background:#2C6BD6"></i>flow line</span><span><i style="background:#2C6BD6;height:4px"></i>water table</span><span><i class="dash" style="color:#D9480F"></i>heave prism</span><span><i class="dot" style="background:#2C6BD6"></i>water (speeded up)</span>';
+  if (!lab) { if (!seep) siteRebuild(true); frame.reported = false; }
+  report();
+}
+/* ---------- pointer interaction ---------- */
+canvas.addEventListener('pointerdown', ev => {
+  const [X, Y] = canvasPoint(canvas, ev, W); canvas.setPointerCapture(ev.pointerId);
+  if (st.scene === 'lab') {
+    const s = st, sc = 120, yBase = 430, yTop = yBase - s.L * sc, yWT = yTop - s.hw * sc, ySupply = yWT - s.dH * sc;
+    if (Math.abs(X - 95) < 30 && Math.abs(Y - ySupply) < 16) { drag = { kind: 'dH' }; running = null; return; }
+    const yP = yTop + clamp(s.z, 0, s.L) * sc; if (X > 300 && X < 560 && Math.abs(Y - yP) < 14) { drag = { kind: 'z' }; return; }
+    return;
+  }
+  const p = { x: view.x(X), y: view.y(Y), X, Y };
+  const hitP = piezos.find(q => Math.hypot(view.X(q.x) - p.X, view.Y(q.y) - p.Y) < 12 || (Math.abs(view.X(q.x) - p.X) < 6 && p.Y < view.Y(q.y) && p.Y > view.Y(geo.T + 2.6) - 10));
+  if (hitP) { drag = { p: hitP, kind: 'piezo' }; return; }
+  if (inSoil(p.x, p.y) && piezos.length < 8) { const np = { x: p.x, y: p.y }; piezos.push(np); drag = { p: np, kind: 'piezo' }; report(); }
+});
+canvas.addEventListener('pointermove', ev => {
+  const [X, Y] = canvasPoint(canvas, ev, W);
+  if (st.scene === 'lab') {
+    if (!drag) return; const s = st, sc = 120, yBase = 430, yTop = yBase - s.L * sc, yWT = yTop - s.hw * sc;
+    if (drag.kind === 'dH') { c.dH.set(clamp(Math.round((yWT - Y) / sc * 50) / 50, -1, 1.5)); }
+    else if (drag.kind === 'z') { c.z.set(clamp(Math.round((Y - yTop) / sc * 20) / 20, 0, s.L)); }
+    return;
+  }
+  hover = { x: view.x(X), y: view.y(Y) };
+  if (drag && drag.kind === 'piezo' && inSoil(hover.x, hover.y)) { drag.p.x = hover.x; drag.p.y = hover.y; }
+});
+canvas.addEventListener('pointerup', () => { if (drag && drag.kind === 'piezo') report(); drag = null; });
+canvas.addEventListener('pointerleave', () => { hover = null; });
+canvas.addEventListener('dblclick', ev => { if (st.scene !== 'site') return; const [X, Y] = canvasPoint(canvas, ev, W); const k = piezos.findIndex(q => Math.hypot(view.X(q.x) - X, view.Y(q.y) - Y) < 14); if (k >= 0) { piezos.splice(k, 1); report(); } });
+/* ---------- predictions ---------- */
+const pr = $('#predicts');
+predict(pr, { q: 'A. Lab rig, still water. We raise the supply tank by 30 cm, well short of boiling. At the probe, the total stress σ will…', options: ['go up', 'go down', 'not change'], answer: 2, explain: 'The overflow keeps the water level in the tank fixed, so the weight of water and sand above the probe is exactly what it was. Flow moves load from the grains to the water; it does not change the total. The black line on the plot never moves.', setup: () => { sceneSeg.set('lab'); st.dH = 0; c.dH.set(0, false); report(); setTimeout(() => c.dH.set(0.3), 1200); } });
+predict(pr, { q: 'B. Same rig. The sand boils at ΔH = 1.04 m with a 1.0 m sample. If we use a 0.5 m sample of the same sand, it boils at…', options: ['the same ΔH', 'half the ΔH', 'twice the ΔH'], answer: 1, explain: 'Boiling depends on the gradient i = ΔH/L, not the head. Half the sample needs half the head. This is why a thin layer of sand at the bottom of an excavation is so much more dangerous than a thick one.', setup: () => { sceneSeg.set('lab'); c.L.set(0.5); st.dH = 0; c.dH.set(0, false); running = dt => { const m = labCalc(); const target = m.dHcr + 0.15; st.dH = Math.min(target, st.dH + 0.12 * dt); c.dH.set(st.dH, false); report(); if (st.dH >= target - 1e-9) running = null; }; } });
+predict(pr, { q: 'C. The sand is boiling. On top of it: a brick (19 kN/m³), a person (about 10), a steel bolt (77). Which of them disappear into the sand?', options: ['all three', 'the brick and the bolt', 'only the bolt'], answer: 2, explain: 'Boiling sand is a liquid of unit weight γ_sat ≈ 20 kN/m³, twice as dense as water. Anything lighter floats: a person floats with their chest out, a brick floats with 5% showing. The bolt, four times denser, goes straight down. Quicksand does not swallow people; it strands them.', setup: () => { sceneSeg.set('lab'); c.dH.set(1.3, false); st.dH = 1.3; c.obj.set('person'); report(); let k = 0; const objs = ['person', 'brick', 'bolt']; const cyc = setInterval(() => { k++; if (k >= objs.length) { clearInterval(cyc); return; } c.obj.set(objs[k]); }, 2200); } });
+predict(pr, { q: 'D. Excavation inside sheet piles, pumped dry. We drive the piles 4 m deeper. The pumping rate and the safety against heave…', options: ['both go down', 'pumping down, safety up', 'pumping up, safety up'], answer: 1, explain: 'Deeper piles lengthen every flow path under the wall. Same head, longer path: lower gradients everywhere, so less water arrives at the floor and the exit gradient falls. Steel is cheaper than a collapsed pit, but wells that lower the outside water table are often cheaper still.', setup: () => { sceneSeg.set('site'); c.D.set(8, false); st.D = 8; c.d.setRange(0.5, 6); c.d.set(2, false); st.d = 2; siteRebuild(true); setTimeout(() => c.d.set(6), 3500); } });
+/* ---------- start ---------- */
+syncScene(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>

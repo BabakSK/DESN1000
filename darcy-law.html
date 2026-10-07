@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2b. Darcy's law with two layers — DESN1000</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1F3F4; --panel:#FFFFFF; --ink:#16213A; --ink-2:#4E5A6E; --line:#CBD2DB; --line-soft:#E4E8EE;
+  --water:#2C6BD6; --water-soft:#DCE8FA; --rust:#D9480F; --rust-soft:#FCE6DA; --ok:#1E7F4F; --ok-soft:#DDF3E6;
+  --danger:#B91C1C; --danger-soft:#FBE1E1; --warn:#B45309; --warn-soft:#FDEBD0;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:17px}
+@media (min-width:1500px){html{font-size:18px}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Barlow,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+.sheet{max-width:1400px;margin:0 auto;padding:16px 24px 44px}
+header.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:2px}
+.crumb{font-size:.95rem;color:var(--ink-2)}
+.crumb b{color:var(--ink);font-weight:600}
+nav.jump a,footer.foot a{color:var(--water);text-decoration:none;font-weight:500;margin-left:18px}
+nav.jump a:hover,footer.foot a:hover{text-decoration:underline}
+h1{font-size:2rem;font-weight:600;line-height:1.1;margin:.1em 0 .2em;letter-spacing:-.012em}
+.lead{font-size:1.12rem;color:var(--ink-2);max-width:70ch;margin:0 0 14px}
+.stage{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(330px,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.drawing{padding:6px 6px 4px;position:relative}
+.drawing canvas{width:100%;display:block;cursor:crosshair;touch-action:none;border-radius:2px}
+.hint{font-size:.9rem;color:var(--ink-2);padding:6px 4px 2px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hint .solving{color:var(--water);font-variant-numeric:tabular-nums}
+.controls{padding:14px 16px 4px;max-height:640px;overflow:auto}
+.controls h2,.results h2,.note h2,.report h2{font-size:.95rem;font-weight:600;margin:0 0 8px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.controls h2{margin-top:6px}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:center;margin:0 0 8px}
+.ctl label{font-weight:500;font-size:.98rem}
+.ctl .num{display:flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums}
+.ctl .num input{width:5em;font:inherit;font-weight:600;text-align:right;border:1px solid var(--line);border-radius:3px;padding:1px 6px;color:var(--ink);background:#fff}
+.ctl .num input:focus,button:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.ctl .unit{color:var(--ink-2);font-size:.9rem;min-width:2.2em}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink);margin:0;cursor:pointer;height:22px}
+.ctl.off{opacity:.42}.ctl.off input{pointer-events:none}
+.seg-wrap{display:block;margin:0 0 10px}
+.seg-label{font-weight:500;margin:0 0 5px;font-size:.98rem}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.seg button,.btn{font:inherit;font-weight:500;font-size:.95rem;padding:5px 11px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:3px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.small{padding:3px 9px;font-size:.88rem}
+.btn:disabled{opacity:.45;cursor:default}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.chk{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:.98rem;cursor:pointer}
+.chk input{accent-color:var(--ink);width:16px;height:16px;margin:0}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin:4px 0 8px}
+.results{padding:12px 16px 14px;border-top:1px solid var(--line-soft)}
+.big{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:baseline;font-variant-numeric:tabular-nums}
+.big .sw{width:13px;height:13px;border-radius:2px;display:inline-block;transform:translateY(1px)}
+.big .lab{font-weight:500}
+.big .v{font-size:1.45rem;font-weight:600;text-align:right;white-space:nowrap}
+.big .v small{font-size:.9rem;font-weight:500;color:var(--ink-2);margin-left:4px}
+.c-total{color:var(--ink)} .c-water{color:var(--water)} .c-eff{color:var(--rust)} .c-ok{color:var(--ok)} .c-bad{color:var(--danger)}
+.bg-total{background:var(--ink)} .bg-water{background:var(--water)} .bg-eff{background:var(--rust)}
+.work{margin:10px 0 0;padding:9px 12px;background:var(--paper);border-radius:3px;font-size:.95rem;line-height:1.55;font-variant-numeric:tabular-nums}
+.work div{margin:0 0 2px}
+.eq{font-family:"Times New Roman",Times,"STIX Two Text",serif;font-style:italic;font-size:1.07em}
+.eq sub,.eq sup{font-style:normal;font-size:.72em}
+.status{margin:10px 0 0;padding:9px 12px;border-radius:3px;font-weight:500;background:var(--paper)}
+.status.bad{background:var(--danger-soft);color:var(--danger)}
+.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.good{background:var(--ok-soft);color:var(--ok)}
+.status.info{background:var(--water-soft);color:var(--ink)}
+.below{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.below{grid-template-columns:1fr}}
+.report{padding:14px 18px 12px}
+.note{padding:14px 18px 12px}
+.note ol,.note ul{margin:0;padding-left:1.2em}
+.note li{margin:0 0 8px}
+.note p{margin:0 0 9px}
+.note .ans{color:var(--ink-2)}
+table.t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.93rem}
+table.t th{text-align:left;font-weight:500;color:var(--ink-2);padding:3px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:4px 6px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+table.t td.n,table.t th.n{text-align:right}
+table.t tr.sel td{background:var(--water-soft)}
+table.t td.pass{color:var(--ok);font-weight:600} table.t td.fail{color:var(--danger);font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;color:var(--ink-2);padding:2px 4px 2px}
+.legend i{display:inline-block;width:18px;height:3px;transform:translateY(-3px);margin-right:6px}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)}
+.legend i.dot{width:8px;height:8px;border-radius:50%;transform:translateY(0)}
+.predict{border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin:0 0 10px;background:#fff}
+.predict .pq{font-weight:500;margin:0 0 8px}
+.predict .popts{display:flex;flex-wrap:wrap;gap:6px}
+.predict .popts button{font:inherit;font-size:.93rem;padding:5px 10px;border:1px solid var(--line);background:#fff;border-radius:3px;cursor:pointer;color:var(--ink)}
+.predict .popts button.sel{border-color:var(--ink);background:var(--paper);font-weight:600}
+.predict .popts button.ans{border-color:var(--ok);background:var(--ok-soft)}
+.predict .pfb{margin:8px 0 0;font-size:.95rem;color:var(--ink-2)}
+.predict .pfb .right{color:var(--ok);font-weight:600}.predict .pfb .wrong{color:var(--danger);font-weight:600}.predict .pfb .lock{font-weight:600;color:var(--ink)}
+.kbd{font-size:.85em;border:1px solid var(--line);border-radius:3px;padding:0 5px;background:#fff}
+footer.foot{display:flex;justify-content:space-between;margin-top:22px;padding-top:12px;border-top:1px solid var(--line);font-size:.95rem}
+footer.foot a{margin:0}
+.checks{list-style:none;padding:0;margin:8px 0}
+.checks li{display:flex;gap:8px;align-items:baseline;margin:0 0 5px;font-size:.95rem}
+.checks li::before{content:"";width:12px;height:12px;border-radius:50%;flex:none;transform:translateY(1px);background:var(--line)}
+.checks li.pass::before{background:var(--ok)}.checks li.fail::before{background:var(--danger)}
+.score{font-size:1.5rem;font-weight:600;margin:4px 0}
+.muted{color:var(--ink-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin:16px 0}
+.card{display:block;text-decoration:none;color:inherit;padding:16px 18px 14px}
+.card:hover{border-color:var(--ink)}
+.card h2{font-size:1.3rem;font-weight:600;margin:2px 0 6px}
+.card p{margin:0 0 8px;color:var(--ink-2)}
+.card .go{font-weight:600;color:var(--water)}
+.card .go::after{content:" →"}
+.card .n{font-size:.9rem;color:var(--ink-2)}
+.card canvas{width:100%;display:block;border:1px solid var(--line-soft);border-radius:3px;margin:0 0 10px}
+
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 4px 2px}
+.strip .sv{font-size:1.35rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.strip .sv small{font-size:.8rem;font-weight:500;color:var(--ink-2)}
+.strip .sl{font-size:.82rem;color:var(--ink-2)}
+
+</style>
+<style>
+.layerhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:10px 0 6px}
+.layerhead h2{margin:0}
+.layerhead .kval{font-size:.95rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.layerhead .kval small{font-weight:500;color:var(--ink-2)}
+.presets{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 8px}
+.presets button{font:inherit;font-size:.84rem;font-weight:500;padding:3px 8px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:3px;cursor:pointer}
+.presets button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.kctl .num input{width:6em;text-align:right}
+.kctl .ticks{grid-column:1/-1;display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-2);margin:-4px 2px 2px;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="sheet">
+<header class="top">
+  <div class="crumb"><b>DESN1000</b> · Darcy's law, one soil or two layers</div>
+  <nav class="jump"></nav>
+</header>
+<h1>Darcy's law through layers: across or along?</h1>
+<p class="lead">The permeameter from Example 2, with a cylinder that can hold two soils: one after the other, so the water has to cross both, or side by side, so it runs along both. Set each layer's permeability and length, run the test, read the standpipes. The kink in the head line tells you which layer is doing the work, and the same two soils measure hundreds of times apart depending on which way the layers run.</p>
+
+<div class="stage">
+  <div class="panel drawing">
+    <canvas id="fig" aria-label="Permeameter with one or two layers, standpipes along the sample, measuring cylinder, stopwatch, a live v against i plot and a permeability scale"></canvas>
+    <div class="strip" id="strip"></div>
+    <div class="hint"><span id="hintText">Drag the ▤ tab on the supply tank to set the head · the standpipes read the head along the sample · press Run and watch the cylinder fill</span><span class="solving" id="clock"></span></div>
+    <div class="legend"><span><i style="background:#2C6BD6"></i>head line along the sample</span><span><i class="dot" style="background:#2C6BD6"></i>water in the pores (speeded up)</span><span><i style="background:#D9480F"></i>fitted line, slope = k<sub>eq</sub></span><span><i class="dash" style="color:#4E5A6E"></i>theory, after the fit</span></div>
+  </div>
+  <div class="panel">
+    <div class="controls" id="ctls"></div>
+    <div class="results" id="results"></div>
+  </div>
+</div>
+
+<div class="below">
+  <div class="panel report" id="trials"></div>
+  <div class="panel report" id="workPanel"></div>
+</div>
+
+<div class="below">
+  <div class="panel note">
+    <h2>Ask the room first, then test it</h2>
+    <div id="predicts"></div>
+  </div>
+  <div class="panel note">
+    <h2>Why the ground is easier to cross one way than the other</h2>
+    <p><strong>Across the layers (series).</strong> The same water must pass through every layer, so the discharge velocity <span class="eq">v</span> is the same in each and <span class="eq">k<sub>1</sub>i<sub>1</sub> = k<sub>2</sub>i<sub>2</sub></span>: the gradients are in inverse proportion to the permeabilities. Each layer's share of the head is its share of the resistance <span class="eq">L<sub>j</sub>/k<sub>j</sub></span>, and <span class="eq">k<sub>eq</sub> = L / Σ(L<sub>j</sub>/k<sub>j</sub>)</span> is pulled towards the tight value: one thin clay seam cuts the vertical permeability of a sand by a thousand.</p>
+    <p><strong>Along the layers (parallel).</strong> Every layer sees the same head drop, so the gradients are equal and the flows add in proportion to <span class="eq">k<sub>j</sub>A<sub>j</sub></span>: <span class="eq">k<sub>eq</sub> = Σ(k<sub>j</sub>A<sub>j</sub>)/A</span>, dominated by the most permeable layer. A thin gravel seam carries the water for the whole deposit.</p>
+    <p><strong>On site.</strong> Natural deposits are laid down in layers, so horizontal permeability is typically 2 to 10 times the vertical, and hundreds of times where clay seams are present. That is why a dam on a layered foundation leaks sideways under the dam rather than down, why an excavation is fed along the sand seams, and why a consolidating clay drains far faster if the borehole missed a silt parting. The two formulas on this page are the first thing an engineer applies to a borehole log.</p>
+  </div>
+</div>
+<footer class="foot"></footer>
+</div>
+
+<script>
+/* lib.js — shared code for the seepage examples (DESN1000 guest lecture)
+   Canvas drawing helpers, UI controls, a 2-D finite-volume seepage solver with a free surface,
+   marching squares for flow nets, water particles, and a prediction ("clicker") widget. */
+'use strict';
+const GW = 9.81;
+const C = { ink: '#16213A', ink2: '#4E5A6E', line: '#CBD2DB', lineSoft: '#E4E8EE', water: '#2C6BD6', waterSoft: '#DCE8FA',
+  rust: '#D9480F', rustSoft: '#FCE6DA', sand: '#EAD08E', sandDeep: '#D9B65F', clay: '#C9A07C', clayDeep: '#A97A54',
+  gravel: '#D3CDBF', silt: '#DED2B6', concrete: '#C9CFD6', rock: '#B9B3A8', danger: '#B91C1C', dangerSoft: '#FBE1E1',
+  grain: '#E0A93A', grainEdge: '#8A6A22', paper: '#F1F3F4', ok: '#1E7F4F', okSoft: '#DDF3E6' };
+const $ = (s, r = document) => r.querySelector(s);
+const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sci = (v, d = 1) => { if (!(v > 0)) return '0'; const e = Math.floor(Math.log10(v)); let m = v / 10 ** e; if (m >= 9.95) { m = 1; return `1×10<sup>${e + 1}</sup>`; } return `${fmt(m, d)}×10<sup>${e}</sup>`; };
+const sciPlain = (v, d = 1) => { if (!(v > 0)) return '0'; const e = Math.floor(Math.log10(v)); const m = v / 10 ** e; return `${fmt(m, d)}e${e}`; };
+function timeLabel(sec) {
+  const Y = 365.25 * 86400;
+  if (!Number.isFinite(sec)) return 'never'; if (sec < 1) return `${fmt(sec, 2)} s`;
+  if (sec < 90) return `${fmt(sec, 0)} s`; if (sec < 5400) return `${fmt(sec / 60, 1)} min`;
+  if (sec < 172800) return `${fmt(sec / 3600, 1)} hours`; if (sec < 5e6) return `${fmt(sec / 86400, 1)} days`;
+  if (sec < 2 * Y) return `${fmt(sec / 86400 / 30.44, 1)} months`; if (sec < 1e3 * Y) return `${fmt(sec / Y, sec < 20 * Y ? 1 : 0)} years`;
+  if (sec < 1e6 * Y) return `${fmt(sec / Y / 1e3, 0)},000 years`; return `${fmt(sec / Y / 1e6, 1)} million years`;
+}
+function clockLabel(sec) { // stopwatch reading in natural units
+  if (!Number.isFinite(sec) || sec < 0) return '–';
+  if (sec < 60) return `${fmt(sec, 1)} s`;
+  if (sec < 3600) { const m = Math.floor(sec / 60), s = Math.floor(sec - 60 * m); return `${m} min ${String(s).padStart(2, '0')} s`; }
+  if (sec < 86400) { const h = Math.floor(sec / 3600), m = Math.floor((sec - 3600 * h) / 60); return `${h} h ${String(m).padStart(2, '0')} min`; }
+  const d = sec / 86400; return `${fmt(d, d < 10 ? 1 : 0)} days`;
+}
+function volLabel(m3) { // per second flows
+  const L = m3 * 1000;
+  if (L >= 1) return `${fmt(L, L < 10 ? 2 : 1)} L/s`; if (L * 60 >= 1) return `${fmt(L * 60, 1)} L/min`;
+  if (L * 3600 >= 1) return `${fmt(L * 3600, 1)} L/hour`; if (L * 86400 >= 0.1) return `${fmt(L * 86400, 1)} L/day`;
+  return `${fmt(L * 86400 * 365.25, 2)} L/year`;
+}
+
+/* ---------- DOM helpers ---------- */
+function dom(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'html') e.innerHTML = v; else if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }
+  for (const c of children) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  return e;
+}
+/* slider + typed number. o = {id, label(html), min, max, step, value, unit, onInput, log(false), digits} */
+function control(parent, o) {
+  const wrap = dom('div', { class: 'ctl' });
+  const lab = dom('label', { for: o.id + '-n', html: o.label });
+  const num = dom('input', { type: 'number', id: o.id + '-n', min: o.min, max: o.max, step: o.step, value: o.value });
+  const unit = dom('span', { class: 'unit', html: o.unit || '' });
+  const range = dom('input', { type: 'range', id: o.id, min: o.min, max: o.max, step: o.step, value: o.value });
+  wrap.append(lab, dom('span', { class: 'num' }, [num, unit]), range);
+  parent.appendChild(wrap);
+  let v = +o.value;
+  const api = {
+    get: () => v,
+    set: (nv, fire = true) => { v = clamp(+nv, +range.min, +range.max); range.value = v; num.value = v; if (fire && o.onInput) o.onInput(v); },
+    el: wrap,
+    enable: on => { wrap.classList.toggle('off', !on); range.disabled = !on; num.disabled = !on; },
+    setRange: (min, max) => { range.min = min; range.max = max; num.min = min; num.max = max; if (v < min || v > max) api.set(clamp(v, min, max)); },
+  };
+  range.addEventListener('input', () => api.set(range.value));
+  num.addEventListener('change', () => api.set(num.value));
+  num.addEventListener('keydown', e => { if (e.key === 'Enter') api.set(num.value); });
+  return api;
+}
+function segmented(parent, o) {
+  const wrap = dom('div', { class: 'ctl seg-wrap' });
+  if (o.label) wrap.appendChild(dom('div', { class: 'seg-label', html: o.label }));
+  const row = dom('div', { class: 'seg' }); wrap.appendChild(row); parent.appendChild(wrap);
+  let v = o.value;
+  const btns = o.options.map(op => { const b = dom('button', { type: 'button', html: op.label, 'aria-pressed': op.value === v ? 'true' : 'false' }); b.addEventListener('click', () => api.set(op.value)); row.appendChild(b); return [op.value, b]; });
+  const api = { get: () => v, set: (nv, fire = true) => { v = nv; btns.forEach(([val, b]) => b.setAttribute('aria-pressed', val === v ? 'true' : 'false')); if (fire && o.onInput) o.onInput(v); }, el: wrap };
+  return api;
+}
+function checkbox(parent, o) {
+  const id = o.id; const inp = dom('input', { type: 'checkbox', id });
+  inp.checked = !!o.value;
+  const wrap = dom('label', { class: 'chk', for: id }, [inp, dom('span', { html: o.label })]);
+  parent.appendChild(wrap);
+  inp.addEventListener('change', () => o.onInput && o.onInput(inp.checked));
+  return { get: () => inp.checked, set: (v, fire = true) => { inp.checked = v; if (fire && o.onInput) o.onInput(v); }, el: wrap };
+}
+function button(parent, label, onClick, cls = 'btn') { const b = dom('button', { type: 'button', class: cls, html: label, onclick: onClick }); parent.appendChild(b); return b; }
+
+/* Prediction widget: ask the room, then test. o = {q, options:[..], answer:index, explain, setup(optional fn)} */
+function predict(parent, o) {
+  const box = dom('div', { class: 'predict' });
+  box.appendChild(dom('div', { class: 'pq', html: o.q }));
+  const row = dom('div', { class: 'popts' });
+  const fb = dom('div', { class: 'pfb' });
+  let chosen = null;
+  o.options.forEach((label, i) => {
+    const b = dom('button', { type: 'button', html: label });
+    b.addEventListener('click', () => {
+      chosen = i; row.querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+      fb.innerHTML = `<span class="lock">Locked in.</span> ${o.setup ? 'Now test it: ' : ''}<button type="button" class="btn small">${o.setup ? 'Set it up and reveal' : 'Reveal'}</button>`;
+      fb.querySelector('button').addEventListener('click', () => {
+        if (o.setup) o.setup();
+        const ok = chosen === o.answer;
+        fb.innerHTML = `<span class="${ok ? 'right' : 'wrong'}">${ok ? 'Correct.' : 'Not this time.'}</span> ${o.explain}`;
+        row.querySelectorAll('button').forEach((x, k) => { if (k === o.answer) x.classList.add('ans'); });
+      });
+    });
+    row.appendChild(b);
+  });
+  box.append(row, fb); parent.appendChild(box); return box;
+}
+
+const EXAMPLES = [
+  ['index.html', 'Overview'],
+  ['01-flow-and-effective-stress.html', '1. Flow and effective stress'],
+  ['02-darcy-lab.html', "2. Darcy's law: the permeameter lab"],
+  ['03-earth-dam.html', '3. Earth dam seepage and piezometers'],
+];
+function buildNav(n) {
+  const top = $('nav.jump'), foot = $('footer.foot');
+  if (top) top.innerHTML = `<a href="index.html">Overview</a>` + (n < 3 ? `<a href="${EXAMPLES[n + 1][0]}">Next example</a>` : '');
+  if (foot) foot.innerHTML = (n > 1 ? `<a href="${EXAMPLES[n - 1][0]}">Previous: ${EXAMPLES[n - 1][1]}</a>` : `<a href="index.html">Overview</a>`) +
+    (n < 3 ? `<a href="${EXAMPLES[n + 1][0]}">Next: ${EXAMPLES[n + 1][1]}</a>` : `<span>End of examples</span>`);
+}
+
+/* ---------- Canvas helpers ---------- */
+function makeCanvas(canvas, W, H) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.width = '100%'; canvas.style.aspectRatio = `${W} / ${H}`; canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.W = W; ctx.H = H;
+  return ctx;
+}
+function canvasPoint(canvas, ev, W) { const r = canvas.getBoundingClientRect(); const s = W / r.width; return [(ev.clientX - r.left) * s, (ev.clientY - r.top) * s]; }
+const FONT = 'Barlow, "Segoe UI", system-ui, sans-serif';
+const MATHFONT = '"Times New Roman", Times, serif';
+const _patterns = new WeakMap();
+function pattern(ctx, name) {
+  let m = _patterns.get(ctx); if (!m) { m = new Map(); _patterns.set(ctx, m); }
+  if (m.has(name)) return m.get(name);
+  const c = document.createElement('canvas'); const sz = name === 'rock' ? 10 : 12; c.width = sz; c.height = sz; const g = c.getContext('2d');
+  const dot = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  switch (name) {
+    case 'sand': g.fillStyle = C.sand; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, C.sandDeep); dot(9, 7, 1, C.sandDeep); dot(5, 10, 0.8, C.sandDeep); break;
+    case 'sandwet': g.fillStyle = '#D9C688'; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, '#B49A4F'); dot(9, 7, 1, '#B49A4F'); dot(5, 10, 0.8, '#B49A4F'); break;
+    case 'clay': g.fillStyle = C.clay; g.fillRect(0, 0, sz, sz); g.strokeStyle = C.clayDeep; g.lineWidth = 1; g.beginPath(); g.moveTo(1, 3.5); g.lineTo(6, 3.5); g.moveTo(6, 9.5); g.lineTo(11, 9.5); g.stroke(); break;
+    case 'silt': g.fillStyle = C.silt; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#B8A878'; g.beginPath(); g.moveTo(1, 4.5); g.lineTo(4, 4.5); g.moveTo(7, 9.5); g.lineTo(10, 9.5); g.stroke(); dot(9, 3, 0.9, '#B8A878'); break;
+    case 'gravel': g.fillStyle = C.gravel; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#8F8778'; g.lineWidth = 1; g.beginPath(); g.arc(3.5, 3.5, 2.2, 0, 7); g.moveTo(11.5, 8.5); g.arc(9.5, 8.5, 2, 0, 7); g.stroke(); break;
+    case 'drain': g.fillStyle = '#E4E0D4'; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#8F8778'; g.lineWidth = 1; g.beginPath(); g.arc(3.5, 3.5, 2.2, 0, 7); g.moveTo(11.5, 8.5); g.arc(9.5, 8.5, 2, 0, 7); g.stroke(); break;
+    case 'rock': g.fillStyle = C.rock; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#7C766B'; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 12); g.lineTo(12, -2); g.moveTo(3, 12); g.lineTo(12, 3); g.moveTo(-2, 7); g.lineTo(7, -2); g.stroke(); break;
+    case 'concrete': g.fillStyle = C.concrete; g.fillRect(0, 0, sz, sz); dot(3, 3, 1, '#7F8A99'); dot(9, 8, 1.2, '#7F8A99'); g.strokeStyle = '#7F8A99'; g.beginPath(); g.moveTo(5, 9); g.lineTo(7, 11); g.lineTo(3, 11); g.closePath(); g.stroke(); break;
+    case 'water': g.fillStyle = C.waterSoft; g.fillRect(0, 0, sz, sz); g.strokeStyle = '#9DB8EA'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, 6); g.quadraticCurveTo(3, 3, 6, 6); g.quadraticCurveTo(9, 9, 12, 6); g.stroke(); break;
+  }
+  const p = ctx.createPattern(c, 'repeat'); m.set(name, p); return p;
+}
+/* rich text: _{sub}, ^{sup}, *italic math*; opts: size, weight, color, align (left|center|right), base (alphabetic|middle|top), font */
+function measureRich(ctx, s, size, weight, font) {
+  const toks = tokenize(s); let w = 0;
+  for (const t of toks) { ctx.font = `${t.italic ? 'italic ' : ''}${weight} ${t.small ? size * 0.72 : size}px ${t.italic ? MATHFONT : font}`; w += ctx.measureText(t.text).width; }
+  return w;
+}
+function tokenize(s) {
+  const out = []; let italic = false; let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '*') { italic = !italic; i++; continue; }
+    if ((ch === '_' || ch === '^') && s[i + 1] === '{') { const j = s.indexOf('}', i + 2); out.push({ text: s.slice(i + 2, j), small: true, sub: ch === '_', italic: false }); i = j + 1; continue; }
+    let j = i; while (j < s.length && s[j] !== '*' && !((s[j] === '_' || s[j] === '^') && s[j + 1] === '{')) j++;
+    out.push({ text: s.slice(i, j), italic }); i = j;
+  }
+  return out;
+}
+function text(ctx, x, y, s, o = {}) {
+  const size = o.size || 13, weight = o.weight || 500, font = o.font || FONT, align = o.align || 'left';
+  const w = measureRich(ctx, s, size, weight, font);
+  let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+  ctx.textAlign = 'left'; ctx.textBaseline = o.base || 'alphabetic'; ctx.fillStyle = o.color || C.ink;
+  for (const t of tokenize(s)) {
+    const sz = t.small ? size * 0.72 : size;
+    ctx.font = `${t.italic ? 'italic ' : ''}${weight} ${sz}px ${t.italic ? MATHFONT : font}`;
+    const dy = t.small ? (t.sub ? size * 0.22 : -size * 0.38) : 0;
+    ctx.fillText(t.text, cx, y + dy); cx += ctx.measureText(t.text).width;
+  }
+  return w;
+}
+function tag(ctx, x, y, s, o = {}) { // text with a white backing box; y is the baseline
+  const size = o.size || 12, weight = o.weight || 500, align = o.align || 'left';
+  const w = measureRich(ctx, s, size, weight, o.font || FONT), h = size + 6, pad = 4;
+  const bx = align === 'center' ? x - w / 2 - pad : align === 'right' ? x - w - pad : x - pad;
+  ctx.fillStyle = o.bg || 'rgba(255,255,255,0.92)'; ctx.fillRect(bx, y - size - 1, w + 2 * pad, h);
+  if (o.border) { ctx.strokeStyle = o.border; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, y - size - 0.5, w + 2 * pad, h); }
+  text(ctx, x, y, s, o);
+  return w;
+}
+function arrow(ctx, x1, y1, x2, y2, o = {}) {
+  const col = o.color || C.ink, lw = o.width || 1.5, hd = o.head || 7;
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.setLineDash(o.dash || []);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - hd * 0.6 * Math.cos(a), y2 - hd * 0.6 * Math.sin(a)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - hd * Math.cos(a - 0.4), y2 - hd * Math.sin(a - 0.4)); ctx.lineTo(x2 - hd * Math.cos(a + 0.4), y2 - hd * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+}
+function dimV(ctx, x, y1, y2, label, o = {}) { // vertical dimension between y1,y2 at x; label to the right (or left)
+  const col = o.color || C.ink2;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
+  [y1, y2].forEach(y => { ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.stroke(); });
+  if (Math.abs(y2 - y1) > 14) { arrow(ctx, x, (y1 + y2) / 2, x, y1, { color: col, width: 1, head: 6 }); arrow(ctx, x, (y1 + y2) / 2, x, y2, { color: col, width: 1, head: 6 }); }
+  if (label) tag(ctx, x + (o.side === 'left' ? -7 : 7), (y1 + y2) / 2 + 4, label, { size: o.size || 12, color: col, align: o.side === 'left' ? 'right' : 'left' });
+}
+function dimH(ctx, x1, x2, y, label, o = {}) {
+  const col = o.color || C.ink2;
+  ctx.strokeStyle = col; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  [x1, x2].forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke(); });
+  if (Math.abs(x2 - x1) > 14) { arrow(ctx, (x1 + x2) / 2, y, x1, y, { color: col, width: 1, head: 6 }); arrow(ctx, (x1 + x2) / 2, y, x2, y, { color: col, width: 1, head: 6 }); }
+  if (label) tag(ctx, (x1 + x2) / 2, y + (o.below ? 16 : -6), label, { size: o.size || 12, color: col, align: 'center' });
+}
+function wtSymbol(ctx, x, y, col = C.water) { // ▽ with two lines, on a water surface at y
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x - 7, y - 10); ctx.lineTo(x + 7, y - 10); ctx.lineTo(x, y); ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 5, y + 3); ctx.lineTo(x + 5, y + 3); ctx.moveTo(x - 3, y + 6); ctx.lineTo(x + 3, y + 6); ctx.stroke();
+}
+function standpipe(ctx, x, yTip, yTop, yWater, o = {}) { // a piezometer tube; canvas coords, y down
+  const w = o.width || 7;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - w / 2, yTop, w, yTip - yTop);
+  if (yWater !== null && yWater < yTip) { ctx.fillStyle = o.waterColor || C.water; ctx.fillRect(x - w / 2 + 1, Math.max(yWater, yTop), w - 2, yTip - Math.max(yWater, yTop)); }
+  ctx.strokeStyle = o.color || C.ink; ctx.lineWidth = 1.2; ctx.strokeRect(x - w / 2, yTop, w, yTip - yTop);
+  // porous tip
+  ctx.fillStyle = o.color || C.ink; ctx.beginPath(); ctx.arc(x, yTip, w * 0.65, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, yTip, w * 0.3, 0, 7); ctx.fill();
+  if (yWater !== null && yWater < yTip && yWater >= yTop) { ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - w, yWater); ctx.lineTo(x + w, yWater); ctx.stroke(); }
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function polygon(ctx, pts) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
+function pointInPoly(pts, x, y) { let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside; } return inside; }
+
+/* Simple x-y plot on canvas. o = {x,y,w,h, xmin,xmax, ymin,ymax, yDown:false, xlabel, ylabel, series:[{pts:[[x,y]..], color, width, dash}], xTicks, yTicks, xfmt, yfmt} */
+function plot(ctx, o) {
+  const { x, y, w, h } = o;
+  const sx = v => x + (v - o.xmin) / (o.xmax - o.xmin) * w;
+  const sy = v => o.yDown ? y + (v - o.ymin) / (o.ymax - o.ymin) * h : y + h - (v - o.ymin) / (o.ymax - o.ymin) * h;
+  ctx.fillStyle = '#fff'; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = C.lineSoft; ctx.lineWidth = 1;
+  const xt = o.xTicks || niceTicks(o.xmin, o.xmax, 5), yt = o.yTicks || niceTicks(o.ymin, o.ymax, 5);
+  xt.forEach(v => { ctx.beginPath(); ctx.moveTo(sx(v), y); ctx.lineTo(sx(v), y + h); ctx.stroke(); text(ctx, sx(v), y + h + 14, o.xfmt ? o.xfmt(v) : fmt(v, decimalsFor(xt)), { size: 11, align: 'center', color: C.ink2 }); });
+  yt.forEach(v => { ctx.beginPath(); ctx.moveTo(x, sy(v)); ctx.lineTo(x + w, sy(v)); ctx.stroke(); text(ctx, x - 5, sy(v) + 4, o.yfmt ? o.yfmt(v) : fmt(v, decimalsFor(yt)), { size: 11, align: 'right', color: C.ink2 }); });
+  if (o.xmin < 0 && o.xmax > 0) { ctx.strokeStyle = '#9AA3B0'; ctx.beginPath(); ctx.moveTo(sx(0), y); ctx.lineTo(sx(0), y + h); ctx.stroke(); }
+  ctx.strokeStyle = C.line; ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  if (o.xlabel) text(ctx, x + w / 2, y + h + 30, o.xlabel, { size: 12, align: 'center', color: C.ink2 });
+  if (o.ylabel) text(ctx, x, y - 8, o.ylabel, { size: 12, color: C.ink2 });
+  ctx.save(); ctx.beginPath(); ctx.rect(x - 1, y - 1, w + 2, h + 2); ctx.clip();
+  (o.series || []).forEach(s => {
+    if (!s.pts.length) return;
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 2.5; ctx.setLineDash(s.dash ? [5, 4] : []); ctx.lineJoin = 'round';
+    ctx.beginPath(); s.pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke(); ctx.setLineDash([]);
+    if (s.dots) s.pts.forEach(p => { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), s.dotR || 4, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(); });
+  });
+  ctx.restore();
+  return { sx, sy };
+}
+function niceStep(range, n = 5) { const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), r = raw / p; return (r >= 5 ? 5 : r >= 2 ? 2 : 1) * p; }
+function niceTicks(a, b, n = 5) { const st = niceStep(b - a, n), out = []; for (let v = Math.ceil(a / st - 1e-9) * st; v <= b + 1e-9; v += st) out.push(+v.toFixed(10)); return out; }
+function decimalsFor(ticks) { const st = ticks.length > 1 ? ticks[1] - ticks[0] : 1; return st >= 1 ? 0 : st >= 0.1 ? 1 : 2; }
+
+/* ---------- 2-D steady seepage solver (finite volume, SOR, free surface by saturation switching) ---------- */
+const T_ROCK = 0, T_SOIL = 1, T_FIXED = 2, T_AIR = 3;
+class Seepage {
+  constructor(nx, ny, dx, x0, y0) {
+    this.nx = nx; this.ny = ny; this.dx = dx; this.x0 = x0; this.y0 = y0;
+    const N = nx * ny;
+    this.k = new Float64Array(N); this.type = new Uint8Array(N).fill(T_AIR); this.hfix = new Float64Array(N);
+    this.h = new Float64Array(N); this.S = new Float64Array(N).fill(1); this.seep = new Uint8Array(N); this.mat = new Uint8Array(N);
+    this.n = new Float64Array(N).fill(0.35); this.vx = new Float64Array(N); this.vy = new Float64Array(N);
+    this.iter = 0; this.change = Infinity; this.hasAir = true; this.freeSurface = true; this.transition = 1.5; this.relax = 0.3; this.floor = 1e-5; this.freezeAfter = 40; this.freezeS = 160;
+  }
+  idx(i, j) { return j * this.nx + i; }
+  xc(i) { return this.x0 + (i + 0.5) * this.dx; }
+  yc(j) { return this.y0 + (j + 0.5) * this.dx; }
+  cell(x, y) { return [Math.floor((x - this.x0) / this.dx), Math.floor((y - this.y0) / this.dx)]; }
+  /* fn(x, y) -> {type, k, mat, hfix, n}. Cells that become soil get an initial head from guess(x,y). */
+  build(fn, guess) {
+    const { nx, ny } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = this.idx(i, j), x = this.xc(i), y = this.yc(j), r = fn(x, y);
+      const wasSoil = this.type[c] === T_SOIL;
+      this.type[c] = r.type; this.k[c] = r.type === T_FIXED ? 1e4 : (r.k || 0); this.mat[c] = r.mat || 0; this.hfix[c] = r.hfix || 0; this.n[c] = r.n || 0.35;
+      if (r.type === T_FIXED) { this.h[c] = r.hfix; this.S[c] = 1; this.seep[c] = 0; }
+      else if (r.type === T_SOIL) { if (!wasSoil) { const gh = guess(x, y); this.h[c] = Number.isFinite(gh) ? gh : y; this.S[c] = 1; this.seep[c] = 0; } }
+      else { this.h[c] = y; this.S[c] = 0; this.seep[c] = 0; }
+    }
+    this.iter = 0; this.change = Infinity; if (this._dS) { this._dS.fill(0); this._rx.fill(this.relax); }
+  }
+  /* one outer iteration: update saturation & seepage faces, then solve the linear system by Jacobi-preconditioned CG */
+  step(cgIters = 150) {
+    const { nx, ny, k, type, h, S, seep } = this; const N = nx * ny;
+    this.updateS(this.relax); if (this.iter < this.freezeAfter) this.updateSeep();
+    if (!this._tl || this._tl.length !== N) { this._tl = new Float64Array(N); this._tr = new Float64Array(N); this._td = new Float64Array(N); this._tu = new Float64Array(N); this._diag = new Float64Array(N); this._b = new Float64Array(N); this._free = new Uint8Array(N); this._r = new Float64Array(N); this._z = new Float64Array(N); this._p = new Float64Array(N); this._Ap = new Float64Array(N); }
+    const tl = this._tl, tr = this._tr, td = this._td, tu = this._tu, diag = this._diag, b = this._b, free = this._free, r = this._r, z = this._z, pp = this._p, Ap = this._Ap;
+    const kk = c => type[c] === T_FIXED ? 1e4 : k[c] * Math.max(S[c], this.floor);
+    const isFree = c => type[c] === T_SOIL && !seep[c] && S[c] > 2 * this.floor;
+    let nfree = 0, kmax = 0;
+    for (let c = 0; c < N; c++) { free[c] = isFree(c) ? 1 : 0; if (type[c] === T_SOIL && k[c] > kmax) kmax = k[c]; }
+    const scale = kmax > 0 ? 1 / kmax : 1;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = j * nx + i; tl[c] = tr[c] = td[c] = tu[c] = 0; diag[c] = 0; b[c] = 0; if (!free[c]) continue; nfree++;
+      const ka = kk(c) * scale; let d = 0, bb = 0;
+      const face = (n, store) => { const t = type[n]; if (!(t === T_SOIL || t === T_FIXED)) return; if (seep[n] && h[n] > h[c]) return; const kb = kk(n) * scale; const T = 2 * ka * kb / (ka + kb); d += T; if (free[n]) store(T); else bb += T * h[n]; };
+      if (i > 0) face(c - 1, T => { tl[c] = T; });
+      if (i < nx - 1) face(c + 1, T => { tr[c] = T; });
+      if (j > 0) face(c - nx, T => { td[c] = T; });
+      if (j < ny - 1) face(c + nx, T => { tu[c] = T; });
+      diag[c] = d; b[c] = bb;
+      if (d === 0) free[c] = 0; // isolated cell
+    }
+    // r = b - A h
+    const matvec = (v, out) => { for (let c = 0; c < N; c++) { if (!free[c]) { out[c] = 0; continue; } let s = diag[c] * v[c]; if (tl[c]) s -= tl[c] * v[c - 1]; if (tr[c]) s -= tr[c] * v[c + 1]; if (td[c]) s -= td[c] * v[c - nx]; if (tu[c]) s -= tu[c] * v[c + nx]; out[c] = s; } };
+    matvec(h, Ap);
+    let rz = 0, bnorm = 0;
+    for (let c = 0; c < N; c++) { if (!free[c]) { r[c] = 0; z[c] = 0; pp[c] = 0; continue; } r[c] = b[c] - Ap[c]; z[c] = r[c] / diag[c]; pp[c] = z[c]; rz += r[c] * z[c]; bnorm = Math.max(bnorm, Math.abs(b[c]) / diag[c]); }
+    const tol = Math.max(1e-10, 1e-7 * Math.max(1, bnorm)); let maxd = 0, it = 0, rmax = Infinity;
+    for (; it < cgIters; it++) {
+      matvec(pp, Ap); let pAp = 0; for (let c = 0; c < N; c++) if (free[c]) pAp += pp[c] * Ap[c];
+      if (pAp <= 0) break; const alpha = rz / pAp; rmax = 0; let rzn = 0;
+      for (let c = 0; c < N; c++) { if (!free[c]) continue; const dh = alpha * pp[c]; h[c] += dh; const ad = S[c] > 0.1 ? Math.abs(dh) : 0; if (ad > maxd) maxd = ad; r[c] -= alpha * Ap[c]; const rr = Math.abs(r[c]) / diag[c]; if (rr > rmax) rmax = rr; z[c] = r[c] / diag[c]; rzn += r[c] * z[c]; }
+      if (rmax < tol) { it++; break; }
+      const beta = rzn / rz; rz = rzn; for (let c = 0; c < N; c++) if (free[c]) pp[c] = z[c] + beta * pp[c];
+    }
+    this.iter += 1; this.cgLast = it; this.change = maxd; this.residual = rmax; return maxd;
+  }
+  updateS(relax = 0.3) {
+    const { nx, ny, type, h, S, dx } = this;
+    if (!this.freeSurface || this.iter >= this.freezeS) return;
+    if (!this._dS || this._dS.length !== S.length) { this._dS = new Float64Array(S.length); this._rx = new Float64Array(S.length).fill(relax); }
+    const dSp = this._dS, rx = this._rx, fl = this.floor, dryLim = 2 * fl; let maxdS = 0;
+    const rl = relax * Math.max(0.03, Math.pow(0.97, this.iter));
+    for (let j = 0; j < ny; j++) { const y = this.yc(j); for (let i = 0; i < nx; i++) { const c = j * nx + i; if (type[c] !== T_SOIL) continue;
+      let p;
+      if (S[c] > dryLim) p = h[c] - y;
+      else { // dry cell: pinned at atmospheric pressure; it re-wets only if a wet neighbour pushes water above it
+        let hn = -Infinity;
+        if (i > 0) { const n = c - 1; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (i < nx - 1) { const n = c + 1; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (j > 0) { const n = c - nx; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        if (j < ny - 1) { const n = c + nx; if (type[n] === T_FIXED || (type[n] === T_SOIL && S[n] > 0.5)) hn = Math.max(hn, h[n]); }
+        p = hn === -Infinity ? -1e9 : hn - y - 0.25 * dx;
+      }
+      const St = p >= 0 ? 1 : Math.max(fl, 1 + p / (this.transition * dx)); const d = St - S[c];
+      if (d * dSp[c] < 0) rx[c] = Math.max(0.02, rx[c] * 0.5); else rx[c] = Math.min(rl, rx[c] * 1.15);
+      dSp[c] = d; const step = rx[c] * d; S[c] += step; if (Math.abs(step) > maxdS) maxdS = Math.abs(step);
+      if (S[c] <= dryLim) { S[c] = fl; h[c] = y; }
+    } }
+    this.dS = maxdS;
+  }
+  /* Seepage faces: a soil cell with an exposed (air) face discharges when its head exceeds the head at that face,
+     which is the face elevation or, if a water body sits against it, that water level (this.exitHead(x, y)). */
+  updateSeep() {
+    const { nx, ny, type, h, seep, dx } = this;
+    if (!this.hasAir) return;
+    for (let j = 0; j < ny; j++) { const y = this.yc(j); for (let i = 0; i < nx; i++) {
+      const c = j * nx + i; if (type[c] !== T_SOIL) continue;
+      const airUp = j < ny - 1 && type[c + nx] === T_AIR, airL = i > 0 && type[c - 1] === T_AIR, airR = i < nx - 1 && type[c + 1] === T_AIR;
+      const wet = (i > 0 && type[c - 1] === T_FIXED) || (i < nx - 1 && type[c + 1] === T_FIXED) || (j > 0 && type[c - nx] === T_FIXED) || (j < ny - 1 && type[c + nx] === T_FIXED);
+      if (!(airUp || airL || airR) || wet) { seep[c] = 0; continue; }
+      const yface = (airL || airR) ? y : y + dx / 2; const x = this.xc(i);
+      const hx = this.exitHead ? Math.max(yface, this.exitHead(x, yface)) : yface;
+      if (seep[c]) { let hn = -Infinity; if (i > 0 && type[c - 1] === T_SOIL) hn = Math.max(hn, h[c - 1]); if (i < nx - 1 && type[c + 1] === T_SOIL) hn = Math.max(hn, h[c + 1]); if (j > 0 && type[c - nx] === T_SOIL) hn = Math.max(hn, h[c - nx]); if (j < ny - 1 && type[c + nx] === T_SOIL) hn = Math.max(hn, h[c + nx]);
+        if (hn < hx - 0.02 * dx) { seep[c] = 0; } else h[c] = hx; }
+      else if (this.S[c] > 0.5 && h[c] > hx + 1e-6) { seep[c] = 1; h[c] = hx; this.S[c] = 1; }
+    } }
+  }
+  /* one outer iteration: update saturation & seepage faces, then solve the linear system by Jacobi-preconditioned CG */
+  isDir(c) { return this.type[c] === T_FIXED || this.seep[c] === 1; }
+  cond(a, b) { const ta = this.type[a], tb = this.type[b]; if (!((ta === T_SOIL || ta === T_FIXED) && (tb === T_SOIL || tb === T_FIXED))) return 0; if (this.isDir(a) && this.isDir(b)) return 0; if (this.seep[a] && this.h[a] > this.h[b]) return 0; if (this.seep[b] && this.h[b] > this.h[a]) return 0; const ka = ta === T_FIXED ? 1e4 : this.k[a] * Math.max(this.S[a], this.floor), kb = tb === T_FIXED ? 1e4 : this.k[b] * Math.max(this.S[b], this.floor); return 2 * ka * kb / (ka + kb); }
+  fluxX(i, j) { if (i <= 0 || i >= this.nx) return 0; const a = this.idx(i - 1, j), b = this.idx(i, j); const T = this.cond(a, b); return T ? -T * (this.h[b] - this.h[a]) / this.dx : 0; } // Darcy velocity through the face x = x0 + i dx, +x
+  fluxY(i, j) { if (j <= 0 || j >= this.ny) return 0; const a = this.idx(i, j - 1), b = this.idx(i, j); const T = this.cond(a, b); return T ? -T * (this.h[b] - this.h[a]) / this.dx : 0; }
+  computeVelocities() {
+    const { nx, ny, vx, vy, type, S } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = j * nx + i; if (type[c] !== T_SOIL || S[c] < 0.5) { vx[c] = 0; vy[c] = 0; continue; } vx[c] = 0.5 * (this.fluxX(i, j) + this.fluxX(i + 1, j)); vy[c] = 0.5 * (this.fluxY(i, j) + this.fluxY(i, j + 1)); }
+  }
+  velocityAt(x, y) { // Darcy velocity, bilinear between cell centres
+    const fx = (x - this.x0) / this.dx - 0.5, fy = (y - this.y0) / this.dx - 0.5; const i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    let vx = 0, vy = 0, ws = 0;
+    for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) { const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue; const c = this.idx(i, j); const w = (di ? tx : 1 - tx) * (dj ? ty : 1 - ty); vx += w * this.vx[c]; vy += w * this.vy[c]; ws += w; }
+    return ws > 0 ? [vx / ws, vy / ws] : [0, 0];
+  }
+  headAt(x, y) { // bilinear among saturated soil / fixed cells; null if dry
+    const fx = (x - this.x0) / this.dx - 0.5, fy = (y - this.y0) / this.dx - 0.5; const i0 = Math.floor(fx), j0 = Math.floor(fy), tx = fx - i0, ty = fy - j0;
+    let hs = 0, ws = 0;
+    for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) { const i = i0 + di, j = j0 + dj; if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue; const c = this.idx(i, j); const t = this.type[c]; if (!(t === T_FIXED || (t === T_SOIL && this.S[c] > 0.5))) continue; const w = (di ? tx : 1 - tx) * (dj ? ty : 1 - ty); hs += w * this.h[c]; ws += w; }
+    return ws > 0.3 ? hs / ws : null;
+  }
+  streamFunction() { // psi on corners (nx+1)*(ny+1): flux crossing below the point along a vertical line
+    const { nx, ny, dx } = this; const psi = new Float64Array((nx + 1) * (ny + 1));
+    for (let i = 0; i <= nx; i++) { let acc = 0; for (let j = 0; j < ny; j++) { acc += this.fluxX(i, j) * dx; psi[(j + 1) * (nx + 1) + i] = acc; } }
+    return psi;
+  }
+  totalFlow() { // max |psi| at the top row ~ total seepage per metre (m3/s/m)
+    const psi = this.streamFunction(); let mx = 0; const { nx, ny } = this;
+    for (let i = 0; i <= nx; i++) { const v = Math.abs(psi[ny * (nx + 1) + i]); if (v > mx) mx = v; }
+    return mx;
+  }
+  fixedInflow(pred) { // flow (m3/s/m) entering fixed-head cells satisfying pred(i,j) from soil cells (positive = into the fixed cells)
+    let q = 0; const { nx, ny, dx } = this;
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const c = this.idx(i, j); if (this.type[c] !== T_FIXED || !pred(i, j, c)) continue;
+      if (i > 0 && this.type[c - 1] === T_SOIL) q += this.fluxX(i, j) * dx;        // +x flux into c from left
+      if (i < nx - 1 && this.type[c + 1] === T_SOIL) q -= this.fluxX(i + 1, j) * dx;
+      if (j > 0 && this.type[c - nx] === T_SOIL) q += this.fluxY(i, j) * dx;
+      if (j < ny - 1 && this.type[c + nx] === T_SOIL) q -= this.fluxY(i, j + 1) * dx; }
+    return q;
+  }
+}
+/* marching squares on a node grid: F[j*nx+i]; valid[j*nx+i] truthy; returns segments in node coordinates */
+const MS_CASES = { 1: [[2, 3]], 2: [[1, 2]], 3: [[1, 3]], 4: [[0, 1]], 5: [[0, 3], [1, 2]], 6: [[0, 2]], 7: [[0, 3]], 8: [[0, 3]], 9: [[0, 2]], 10: [[0, 1], [2, 3]], 11: [[0, 1]], 12: [[1, 3]], 13: [[1, 2]], 14: [[2, 3]] };
+function isolines(F, nx, ny, level, valid) {
+  const segs = [];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const ia = j * nx + i, ib = ia + 1, ic = ia + nx + 1, id = ia + nx;
+    if (!(valid[ia] && valid[ib] && valid[ic] && valid[id])) continue;
+    const a = F[ia], b = F[ib], c = F[ic], d = F[id];
+    const code = (a > level ? 8 : 0) | (b > level ? 4 : 0) | (c > level ? 2 : 0) | (d > level ? 1 : 0);
+    if (code === 0 || code === 15) continue;
+    const pt = e => { switch (e) { case 0: return [i + (level - a) / (b - a), j]; case 1: return [i + 1, j + (level - b) / (c - b)]; case 2: return [i + (level - d) / (c - d), j + 1]; default: return [i, j + (level - a) / (d - a)]; } };
+    for (const [e1, e2] of MS_CASES[code]) { const p = pt(e1), q = pt(e2); if (Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(q[0]) && Number.isFinite(q[1])) segs.push([p[0], p[1], q[0], q[1]]); }
+  }
+  return segs;
+}
+/* Water particles advected by the pore velocity. */
+class Particles {
+  constructor(n) { this.n = n; this.p = []; this.age = []; }
+  seed(seep, k = 1) {
+    const cells = []; for (let j = 0; j < seep.ny; j++) for (let i = 0; i < seep.nx; i++) { const c = seep.idx(i, j); if (seep.type[c] === T_SOIL && seep.S[c] > 0.7 && Math.hypot(seep.vx[c], seep.vy[c]) > 1e-12) cells.push(c); }
+    this.cells = cells;
+    for (let m = 0; m < k; m++) { if (!cells.length) return; const c = cells[Math.floor(Math.random() * cells.length)]; const i = c % seep.nx, j = Math.floor(c / seep.nx); this.p.push([seep.xc(i) + (Math.random() - 0.5) * seep.dx, seep.yc(j) + (Math.random() - 0.5) * seep.dx]); this.age.push(0); }
+  }
+  step(seep, dt, speedup) {
+    if (!this.cells) this.seed(seep, this.n);
+    while (this.p.length < this.n && this.cells && this.cells.length) this.seed(seep, 1);
+    for (let q = this.p.length - 1; q >= 0; q--) {
+      const pt = this.p[q]; const [vx, vy] = seep.velocityAt(pt[0], pt[1]);
+      const [i, j] = seep.cell(pt[0], pt[1]); const inside = i >= 0 && j >= 0 && i < seep.nx && j < seep.ny; const c = inside ? seep.idx(i, j) : -1;
+      const nn = c >= 0 ? seep.n[c] : 0.35;
+      const sp = Math.hypot(vx, vy);
+      if (!inside || seep.type[c] !== T_SOIL || seep.S[c] < 0.5 || sp < 1e-12 || this.age[q] > 4000) { this.p.splice(q, 1); this.age.splice(q, 1); continue; }
+      pt[0] += vx / nn * dt * speedup; pt[1] += vy / nn * dt * speedup; this.age[q]++;
+    }
+  }
+  reset() { this.p = []; this.age = []; this.cells = null; }
+}
+/* typical median pore speed (m/s) to size the animation speed-up */
+function medianSpeed(seep) {
+  const v = []; for (let j = 0; j < seep.ny; j++) for (let i = 0; i < seep.nx; i++) { const c = seep.idx(i, j); if (seep.type[c] === T_SOIL && seep.S[c] > 0.7) { const s = Math.hypot(seep.vx[c], seep.vy[c]) / seep.n[c]; if (s > 1e-12) v.push(s); } }
+  if (!v.length) return 0; v.sort((a, b) => a - b); return v[Math.floor(v.length * 0.6)];
+}
+
+</script>
+<script>
+buildNav(2);
+$('nav.jump').innerHTML = '<a href="index.html">Home</a><a href="effective-stress.html">Flow and effective stress</a><a href="earth-dam.html">Earth dam seepage and piezometers</a>'; $('footer.foot').innerHTML = '<span>DESN1000 · interactive examples on water in soil</span><a href="index.html">All examples</a>';
+const canvas = $('#fig'), W = 1000, H = 520, ctx = makeCanvas(canvas, W, H);
+
+/* ---------- soils and permeability ---------- */
+const KSEQ = []; for (let e = -10; e <= -2; e++) for (const m of [1, 2, 5]) KSEQ.push(m * 10 ** e); KSEQ.push(1e-1);
+const PRESETS = [['Gravel', 1e-2], ['Coarse sand', 1e-3], ['Medium sand', 1e-4], ['Fine sand', 1e-5], ['Silt', 1e-7], ['Clay', 1e-9]];
+function soilOf(k) { // a description, texture and porosity for any permeability
+  if (k >= 5e-3) return { label: 'gravel', pat: 'gravel', n: 0.30 };
+  if (k >= 5e-4) return { label: 'coarse sand', pat: 'sand', n: 0.35 };
+  if (k >= 5e-5) return { label: 'medium sand', pat: 'sand', n: 0.38 };
+  if (k >= 5e-6) return { label: 'fine sand', pat: 'sandwet', n: 0.40 };
+  if (k >= 5e-7) return { label: 'silty sand', pat: 'sandwet', n: 0.42 };
+  if (k >= 5e-9) return { label: 'silt', pat: 'silt', n: 0.45 };
+  return { label: 'clay', pat: 'clay', n: 0.50 };
+}
+const tint = k => clamp((-Math.log10(k) - 2) / 8, 0, 1) * 0.3; // tighter soils drawn a little darker
+const kIndex = k => { let best = 0, bd = Infinity; KSEQ.forEach((v, i) => { const d = Math.abs(Math.log10(v) - Math.log10(k)); if (d < bd) { bd = d; best = i; } }); return best; };
+const mant = k => k / 10 ** Math.floor(Math.log10(k) + 1e-12);
+const digits = k => Math.abs(mant(k) - Math.round(mant(k))) < 1e-6 ? 0 : 1;
+const kHtml = k => sci(k, digits(k));
+const kPlain = k => sciPlain(k, digits(k));
+
+/* ---------- state ---------- */
+const st = { arr: 'series', test: 'constant', k1: 1e-4, k2: 2e-5, L: 0.2, L1: 0.1, L2: 0.1, f: 0.5, dH: 0.5, Dmm: 100, bore: 5, h0: 1.0, noise: true, particles: true };
+const lab = { running: false, t: 0, V: 0, h: 1.0, speed: 1, trial: null };
+let trials = [], fit = null, drag = null, lastT = performance.now();
+const parts = []; for (let k = 0; k < 110; k++) parts.push([Math.random(), Math.random()]);
+function A() { return Math.PI * (st.Dmm / 2000) ** 2; }
+function a() { return Math.PI * (st.bore / 2000) ** 2; }
+function calc() {
+  const s = st, S1 = soilOf(s.k1), S2 = soilOf(s.k2);
+  const series = s.arr === 'series', par = s.arr === 'parallel';
+  const L = series ? s.L1 + s.L2 : s.L;
+  const f = series ? s.L1 / L : par ? s.f : 1;             // layer 1's share of the length (series) or of the area (parallel)
+  const R1 = s.L1 / s.k1, R2 = s.L2 / s.k2;                 // resistances, seconds
+  const kSeries = (s.L1 + s.L2) / (R1 + R2);
+  const kPar = s.f * s.k1 + (1 - s.f) * s.k2;
+  const keq = series ? kSeries : par ? kPar : s.k1;
+  const Ar = A(), i = s.dH / L, Q = keq * Ar * i, v = keq * i;
+  const share1 = series ? R1 / (R1 + R2) : 0;               // share of the head lost in layer 1
+  const flow1 = par ? s.f * s.k1 / kPar : 1;                // share of the flow carried by layer 1
+  const i1 = series ? share1 * s.dH / s.L1 : i, i2 = series ? (1 - share1) * s.dH / s.L2 : i;
+  const headFrac = xf => series ? (xf <= f ? 1 - share1 * xf / f : (1 - share1) * (1 - (xf - f) / (1 - f))) : 1 - xf; // remaining head fraction at xf along the sample
+  const tau = a() * L / (keq * Ar);
+  return { S1, S2, series, par, L, f, R1, R2, kSeries, kPar, keq, A: Ar, i, i1, i2, Q, v, share1, flow1, headFrac, tau, t200: 2e-4 / Q, ratio: s.k1 / s.k2 };
+}
+function compression(m) { return st.test === 'constant' ? clamp(m.t200 / 8, 1, 1e7) : clamp(m.tau * Math.log(2) / 8, 1, 1e8); } // so that a run plays in about 8 s
+
+/* ---------- geometry shared by the drawing and the pointer ---------- */
+function geom(m) {
+  const s = st; const HS = 180, yOut = 330, xIn = 215, Lpx = 70 + m.L * 500, xOutEnd = xIn + Lpx, dia = 44 + s.Dmm * 0.16, yc = 392, yIn = yOut - s.dH * HS;
+  return { HS, yOut, xIn, Lpx, xOutEnd, dia, yc, yIn, tankX: 120, tankW: 90 };
+}
+/* ---------- drawing ---------- */
+function layerFill(x, y, w, h, k) { ctx.fillStyle = pattern(ctx, soilOf(k).pat); ctx.fillRect(x, y, w, h); const t = tint(k); if (t > 0) { ctx.fillStyle = `rgba(22,33,58,${t})`; ctx.fillRect(x, y, w, h); } }
+function draw(dt) {
+  const s = st, m = calc(), g = geom(m); const { HS, yOut, xIn, Lpx, xOutEnd, dia, yc, yIn } = g;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  // datum
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(40, yOut); ctx.lineTo(xOutEnd + 128, yOut); ctx.stroke(); ctx.setLineDash([]);
+  // --- sample chamber
+  const chx = xIn - 18, chy = yc - dia / 2 - 8, chw = Lpx + 36, chh = dia + 16;
+  ctx.save(); ctx.shadowColor = 'rgba(22,33,58,0.16)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3; ctx.fillStyle = '#F7F8FA'; ctx.fillRect(chx, chy, chw, chh); ctx.restore();
+  const xB = xIn + m.f * Lpx, yB = yc - dia / 2 + m.f * dia;
+  if (m.series) { layerFill(xIn, yc - dia / 2, xB - xIn, dia, s.k1); layerFill(xB, yc - dia / 2, xIn + Lpx - xB, dia, s.k2); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xB, yc - dia / 2); ctx.lineTo(xB, yc + dia / 2); ctx.stroke(); }
+  else if (m.par) { layerFill(xIn, yc - dia / 2, Lpx, yB - (yc - dia / 2), s.k1); layerFill(xIn, yB, Lpx, yc + dia / 2 - yB, s.k2); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xIn, yB); ctx.lineTo(xIn + Lpx, yB); ctx.stroke(); }
+  else layerFill(xIn, yc - dia / 2, Lpx, dia, s.k1);
+  // glass highlight, porous end stones, outline
+  ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(xIn, yc - dia / 2, Lpx, dia * 0.18);
+  ctx.fillStyle = pattern(ctx, 'concrete'); ctx.fillRect(xIn - 7, yc - dia / 2, 7, dia); ctx.fillRect(xIn + Lpx, yc - dia / 2, 7, dia); ctx.strokeStyle = C.ink2; ctx.lineWidth = 1; ctx.strokeRect(xIn - 7, yc - dia / 2, 7, dia); ctx.strokeRect(xIn + Lpx, yc - dia / 2, 7, dia);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.8; ctx.strokeRect(chx, chy, chw, chh);
+  // water particles: one pore speed in series (k_eq·i / n), one per layer in parallel (k_j·i / n_j)
+  if (s.particles && (lab.running || s.test === 'constant')) {
+    const comp = lab.running ? lab.speed : compression(m); const fac = comp * (Lpx / m.L) * dt * (s.test === 'falling' ? lab.h / s.h0 : 1);
+    for (const p of parts) {
+      let vp; if (m.par) { const top = p[1] < m.f; vp = (top ? s.k1 : s.k2) * m.i / (top ? m.S1 : m.S2).n; } else if (m.series) vp = m.v / (p[0] < m.f ? m.S1 : m.S2).n; else vp = m.v / m.S1.n;
+      p[0] += vp * fac / Lpx; if (p[0] > 1) p[0] -= 1;
+      ctx.fillStyle = 'rgba(44,107,214,0.9)'; ctx.beginPath(); ctx.arc(xIn + p[0] * Lpx, yc - dia / 2 + 4 + p[1] * (dia - 8), 1.8, 0, 7); ctx.fill();
+    }
+  }
+  // dimensions and layer labels
+  if (m.series) { dimH(ctx, xIn, xB, yc + dia / 2 + 24, `*L*_{1} = ${fmt(s.L1 * 1000, 0)} mm`, { below: true }); dimH(ctx, xB, xIn + Lpx, yc + dia / 2 + 24, `*L*_{2} = ${fmt(s.L2 * 1000, 0)} mm`, { below: true }); dimH(ctx, xIn, xIn + Lpx, yc + dia / 2 + 50, `*L* = ${fmt(m.L * 1000, 0)} mm`, { below: true }); }
+  else dimH(ctx, xIn, xIn + Lpx, yc + dia / 2 + 24, `*L* = ${fmt(m.L * 1000, 0)} mm`, { below: true });
+  const l1 = `${m.S1.label}, *k*_{1} = ${kPlain(s.k1)}`, l2 = `${m.S2.label}, *k*_{2} = ${kPlain(s.k2)}`;
+  if (m.series) { const w1 = xB - xIn, w2 = xIn + Lpx - xB; if (w1 > 70) tag(ctx, (xIn + xB) / 2, yc + 4, l1, { size: 9.5, align: 'center', color: C.ink }); if (w2 > 70) tag(ctx, (xB + xIn + Lpx) / 2, yc + 4, l2, { size: 9.5, align: 'center', color: C.ink }); }
+  else if (m.par) { tag(ctx, xIn + Lpx / 2, (yc - dia / 2 + yB) / 2 + 4, `${l1} · carries ${fmt(100 * m.flow1, m.flow1 > 0.995 || m.flow1 < 0.005 ? 1 : 0)}%`, { size: 9.5, align: 'center', color: C.ink }); tag(ctx, xIn + Lpx / 2, (yB + yc + dia / 2) / 2 + 4, `${l2} · carries ${fmt(100 * (1 - m.flow1), m.flow1 > 0.995 || m.flow1 < 0.005 ? 1 : 0)}%`, { size: 9.5, align: 'center', color: C.ink }); }
+  else tag(ctx, xIn + Lpx / 2, yc + 4, l1, { size: 9.5, align: 'center', color: C.ink });
+  text(ctx, xIn + Lpx / 2, yc + dia / 2 + (m.series ? 76 : 50), `${m.series ? 'in series' : m.par ? 'in parallel' : 'one soil'} · *D* = ${s.Dmm} mm, *A* = ${fmt(m.A * 1e4, 1)} cm²`, { size: 10.5, align: 'center', color: C.ink2 });
+  // --- inlet
+  if (s.test === 'constant') {
+    const tx = g.tankX, tw = g.tankW, tTop = Math.max(52, Math.min(yIn - 30, yc - dia / 2 - 30)), tBot = yc + dia / 2 + 30;
+    ctx.save(); ctx.shadowColor = 'rgba(22,33,58,0.16)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3; ctx.fillStyle = '#F7F8FA'; ctx.fillRect(tx - tw / 2, tTop, tw, tBot - tTop); ctx.restore();
+    ctx.fillStyle = pattern(ctx, 'water'); ctx.fillRect(tx - tw / 2 + 1, yIn, tw - 2, tBot - yIn - 1);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.strokeRect(tx - tw / 2, tTop, tw, tBot - tTop);
+    ctx.strokeStyle = C.ink2; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 20, tTop - 26); ctx.lineTo(tx - 20, tTop - 8); ctx.stroke(); ctx.fillStyle = C.water; for (let d = 0; d < 3; d++) { ctx.beginPath(); ctx.arc(tx - 20, tTop - 4 + d * 9 + ((performance.now() / 60) % 9), 1.8, 0, 7); ctx.fill(); }
+    tag(ctx, tx - 14, tTop - 12, 'tap', { size: 10, color: C.ink2 });
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tx + tw / 2, yIn - 6); ctx.lineTo(tx + tw / 2 + 24, yIn - 6); ctx.lineTo(tx + tw / 2 + 24, yIn + 16); ctx.stroke(); ctx.strokeStyle = C.water; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(tx + tw / 2 + 1, yIn); ctx.lineTo(tx + tw / 2 + 20, yIn); ctx.lineTo(tx + tw / 2 + 20, yIn + 16); ctx.stroke(); tag(ctx, tx + tw / 2 + 2, yIn - 10, 'overflow', { size: 10, color: C.ink2 });
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; roundRect(ctx, tx - 14, yIn - 9, 28, 18, 3); ctx.fill(); ctx.stroke(); ctx.beginPath(); for (let d = -4; d <= 4; d += 4) { ctx.moveTo(tx - 7, yIn + d); ctx.lineTo(tx + 7, yIn + d); } ctx.stroke();
+    text(ctx, tx, tTop - 34, 'constant-head tank', { size: 12, weight: 600, align: 'center', color: C.ink2 });
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(tx + tw / 2 - 2, yc); ctx.lineTo(xIn - 18, yc); ctx.stroke(); ctx.strokeStyle = C.water; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(tx + tw / 2 - 2, yc); ctx.lineTo(xIn - 18, yc); ctx.stroke();
+    arrow(ctx, (tx + tw / 2 + xIn - 18) / 2 - 8, yc, (tx + tw / 2 + xIn - 18) / 2 + 10, yc, { color: '#fff', width: 1.5, head: 6 });
+    dimV(ctx, 62, yIn, yOut, `*h*_{1} = ${fmt(s.dH, 2)} m`, { side: 'left', color: C.water });
+  } else {
+    const px = xIn - 2, top = yOut - s.h0 * HS - 26, bw = 8 + s.bore * 1.2;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(px, yc - dia / 2 - 8); ctx.lineTo(px, yc - dia / 2 - 30); ctx.lineTo(px - 60, yc - dia / 2 - 30); ctx.stroke(); ctx.strokeStyle = C.water; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(px, yc - dia / 2 - 8); ctx.lineTo(px, yc - dia / 2 - 30); ctx.lineTo(px - 60, yc - dia / 2 - 30); ctx.stroke();
+    const sx = px - 60; const level = yOut - lab.h * HS;
+    ctx.fillStyle = '#fff'; ctx.fillRect(sx - bw / 2, top, bw, yc - dia / 2 - 30 - top); ctx.fillStyle = C.water; ctx.fillRect(sx - bw / 2 + 1, level, bw - 2, yc - dia / 2 - 30 - level);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(sx - bw / 2, top, bw, yc - dia / 2 - 30 - top);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let hh = 0; hh <= s.h0 + 1e-9; hh += 0.1) { const yy = yOut - hh * HS; const major = Math.abs(hh * 2 - Math.round(hh * 2)) < 1e-6; ctx.beginPath(); ctx.moveTo(sx + bw / 2, yy); ctx.lineTo(sx + bw / 2 + (major ? 10 : 5), yy); ctx.stroke(); if (major) text(ctx, sx + bw / 2 + 13, yy + 4, fmt(hh, 1), { size: 10, color: C.ink2 }); }
+    ctx.strokeStyle = C.water; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx - bw, level); ctx.lineTo(sx + bw, level); ctx.stroke();
+    tag(ctx, sx - bw - 6, level + 4, `*h* = ${fmt(lab.h, 3)} m`, { size: 11, color: C.water, weight: 600, align: 'right' });
+    text(ctx, sx, top - 12, `standpipe, ${s.bore} mm bore`, { size: 12, weight: 600, align: 'center', color: C.ink2 });
+  }
+  // --- standpipes along the sample and the head line
+  const hNow = s.test === 'constant' ? s.dH : lab.h; const hAt = xf => hNow * m.headFrac(xf); const yH = xf => yOut - hAt(xf) * HS;
+  const pTop = Math.max(34, Math.min((s.test === 'constant' ? yIn : yOut - s.h0 * HS) - 36, yc - dia / 2 - 112));
+  const e0 = 6 / Lpx, e1 = 1 - 6 / Lpx; let fr = [e0, 0.5, e1];
+  if (m.series) { const cand = [[m.f, true], [e0, false], [e1, false], [m.f / 2, false], [m.f + (1 - m.f) / 2, false]]; const kept = []; for (const [xf, must] of cand) { if (must || kept.every(k => Math.abs(k - xf) * Lpx >= 30)) kept.push(xf); } fr = kept.sort((p, q) => p - q); }
+  fr.forEach(xf => { const xk = xIn + xf * Lpx, yk = yc - dia / 2 - 8; standpipe(ctx, xk, yk, pTop, yH(xf), { width: 7 }); tag(ctx, xk, yH(xf) - 8, `${fmt(hAt(xf), 2)}`, { size: 10, align: 'center', color: C.water }); });
+  ctx.strokeStyle = C.water; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(xIn + 2, yH(0)); if (m.series) ctx.lineTo(xB, yH(m.f)); ctx.lineTo(xIn + Lpx - 2, yH(1)); ctx.stroke(); ctx.setLineDash([]);
+  const row = pTop - 10; ctx.strokeStyle = C.water; ctx.lineWidth = 1;
+  const bracket = (xa, xb, y) => { ctx.strokeStyle = C.water; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xa, y + 5); ctx.lineTo(xa, y); ctx.lineTo(xb, y); ctx.lineTo(xb, y + 5); ctx.stroke(); };
+  if (m.series) {
+    ctx.fillStyle = C.water; ctx.beginPath(); ctx.arc(xB, yH(m.f), 3.5, 0, 7); ctx.fill();
+    const d1 = m.share1 * hNow, d2 = (1 - m.share1) * hNow; const x1 = (xIn + xB) / 2, x2 = (xB + xIn + Lpx) / 2; const two = Math.abs(x2 - x1) < 170;
+    bracket(xIn + 2, xB - 2, row + 4); bracket(xB + 2, xIn + Lpx - 2, row + 4 - (two ? 14 : 0));
+    tag(ctx, x1, row, `Δ*h*_{1} = ${fmt(d1, 2)} m · *i*_{1} = ${fmt(m.i1, 2)}`, { size: 10, align: 'center', color: C.water, weight: 600 });
+    tag(ctx, x2, row - (two ? 14 : 0), `Δ*h*_{2} = ${fmt(d2, 2)} m · *i*_{2} = ${fmt(m.i2, 2)}`, { size: 10, align: 'center', color: C.water, weight: 600 });
+  } else { bracket(xIn + 2, xIn + Lpx - 2, row + 4); tag(ctx, xIn + Lpx / 2, row, m.par ? `one head line for both layers · *i* = Δ*h*/*L* = ${fmt(m.i, 2)}` : `*i* = Δ*h*/*L* = ${fmt(m.i, 2)}`, { size: 10, align: 'center', color: C.water, weight: 600 }); }
+  // --- outlet, measuring cylinder, stopwatch
+  const ox = xOutEnd + 18; ctx.strokeStyle = C.ink; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(xOutEnd + 7, yc); ctx.lineTo(ox + 30, yc); ctx.lineTo(ox + 30, yOut + 22); ctx.stroke(); ctx.strokeStyle = C.water; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(xOutEnd + 7, yc); ctx.lineTo(ox + 30, yc); ctx.lineTo(ox + 30, yOut + 22); ctx.stroke();
+  ctx.fillStyle = '#F7F8FA'; ctx.fillRect(ox + 8, yOut - 4, 60, 30); ctx.fillStyle = pattern(ctx, 'water'); ctx.fillRect(ox + 9, yOut, 58, 25); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(ox + 8, yOut - 4, 60, 30);
+  ctx.beginPath(); ctx.moveTo(ox + 68, yOut - 4); ctx.lineTo(ox + 88, yOut - 4); ctx.lineTo(ox + 88, yOut + 8); ctx.stroke(); ctx.strokeStyle = C.water; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ox + 68, yOut); ctx.lineTo(ox + 84, yOut); ctx.lineTo(ox + 84, yOut + 8); ctx.stroke();
+  tag(ctx, ox + 38, yOut - 10, 'outlet level = datum, *h* = 0', { size: 10, align: 'center', color: C.ink2 });
+  const cx = ox + 84, cTop = yOut + 34, cH = 112, cW = 50, cap = 250;
+  ctx.fillStyle = '#fff'; ctx.fillRect(cx - cW / 2, cTop, cW, cH); const frac = clamp(lab.V / cap, 0, 1);
+  ctx.fillStyle = 'rgba(44,107,214,0.55)'; ctx.fillRect(cx - cW / 2 + 1, cTop + cH - frac * cH, cW - 2, frac * cH); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.strokeRect(cx - cW / 2, cTop, cW, cH);
+  ctx.strokeStyle = C.ink2; ctx.lineWidth = 1; for (let v = 0; v <= cap; v += 25) { const yy = cTop + cH - v / cap * cH; ctx.beginPath(); ctx.moveTo(cx + cW / 2 - (v % 50 ? 6 : 12), yy); ctx.lineTo(cx + cW / 2, yy); ctx.stroke(); if (v % 50 === 0) text(ctx, cx + cW / 2 + 4, yy + 4, `${v}`, { size: 9, color: C.ink2 }); }
+  if (lab.running && s.test === 'constant') { ctx.fillStyle = C.water; for (let d = 0; d < 3; d++) { ctx.beginPath(); ctx.arc(cx, yOut + 12 + ((performance.now() / 50 + d * 14) % 40), 2, 0, 7); ctx.fill(); } }
+  text(ctx, cx, cTop + cH + 16, `${fmt(lab.V, 0)} mL`, { size: 13, weight: 700, align: 'center', color: C.water }); text(ctx, cx, cTop + cH + 29, 'measuring cylinder', { size: 10, align: 'center', color: C.ink2 });
+  const swx = g.tankX - 10, swy = yc + dia / 2 + 60, swW = 110; ctx.save(); ctx.shadowColor = 'rgba(22,33,58,0.25)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2; ctx.fillStyle = '#111827'; roundRect(ctx, swx - swW / 2, swy - 17, swW, 34, 5); ctx.fill(); ctx.restore();
+  const clk = clockLabel(lab.t); text(ctx, swx, swy + 6, clk, { size: clk.length > 9 ? 14 : 16, weight: 700, align: 'center', color: lab.running ? '#A7F3D0' : '#E5E7EB' });
+  text(ctx, swx, swy + 30, 'stopwatch', { size: 10, align: 'center', color: C.ink2 });
+  // --- v against i
+  const pv = { x: 752, y: 42, w: 222, h: 178 };
+  const imax = Math.max(2, ...trials.map(t => t.i)) * 1.1; const vmax = Math.max(1e-12, ...trials.map(t => t.v), fit ? fit.k * imax : 0, m.keq * imax * 0.9) * 1.15;
+  const unit = vmax > 1e-3 ? [1e3, 'mm/s'] : vmax > 1e-6 ? [1e6, 'µm/s'] : [1e9, 'nm/s']; const series = [];
+  if (fit) series.push({ pts: [[0, 0], [imax, m.keq * imax * unit[0]]], color: C.ink2, width: 1.2, dash: true });
+  if (fit) series.push({ pts: [[0, 0], [imax, fit.k * imax * unit[0]]], color: C.rust, width: 2.2 });
+  series.push({ pts: trials.map(t => [t.i, t.v * unit[0]]), color: C.water, width: 0.01, dots: true, dotR: 5 });
+  plot(ctx, { ...pv, xmin: 0, xmax: imax, ymin: 0, ymax: vmax * unit[0], series, xlabel: 'hydraulic gradient *i* = Δ*h*/*L*', ylabel: `*v* = *Q*/*A* (${unit[1]})` });
+  if (fit) tag(ctx, pv.x + pv.w - 6, pv.y + 18, `slope *k*_{eq} = ${sciPlain(fit.k, 2)} m/s`, { size: 11, align: 'right', color: C.rust, weight: 600 });
+  if (!trials.length) text(ctx, pv.x + pv.w / 2, pv.y + pv.h / 2, 'log a few trials at different heads', { size: 11, align: 'center', color: C.ink2 });
+  // --- where k_eq sits: a log scale from clay to gravel
+  kScale(m, 752, 296, 222);
+  // title block
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(W - 262.5, H - 44.5, 252, 36);
+  text(ctx, W - 254, H - 29, `${s.test === 'constant' ? 'Constant-head' : 'Falling-head'} permeameter · ${m.series ? 'two layers in series' : m.par ? 'two layers in parallel' : 'one soil'}`, { size: 10, color: C.ink2 });
+  text(ctx, W - 254, H - 15, 'the clock is compressed: each run plays in about 8 s', { size: 10, color: C.ink2 });
+}
+function kRich(k) { const e = Math.floor(Math.log10(k) + 1e-12); return `${fmt(mant(k), digits(k))}×10^{${e}}`; }
+function kScale(m, x0, y0, w) {
+  const lo = -10, hi = -1; const X = k => x0 + (Math.log10(k) - lo) / (hi - lo) * w; const yAx = y0 + 52;
+  text(ctx, x0, y0, 'where the permeability sits (m/s)', { size: 12, color: C.ink2 });
+  const bands = [['clay', 1e-10, 5e-9, '#C9A07C'], ['silt', 5e-9, 5e-7, '#DED2B6'], ['fine sand', 5e-7, 5e-5, '#D9C688'], ['sand', 5e-5, 5e-3, '#EAD08E'], ['gravel', 5e-3, 1e-1, '#D3CDBF']];
+  for (const [lab, a, b, col] of bands) { ctx.fillStyle = col; ctx.fillRect(X(a), yAx - 6, X(b) - X(a), 12); text(ctx, (X(a) + X(b)) / 2, yAx + 20, lab, { size: 9.5, align: 'center', color: C.ink2 }); }
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x0, yAx); ctx.lineTo(x0 + w, yAx); ctx.stroke();
+  for (let e = lo; e <= hi; e++) { const xx = X(10 ** e); ctx.beginPath(); ctx.moveTo(xx, yAx - 8); ctx.lineTo(xx, yAx + 8); ctx.stroke(); if ((e - lo) % 3 === 0) text(ctx, xx, yAx + 33, `10^{${e}}`, { size: 9.5, align: 'center', color: C.ink2 }); }
+  const marker = (k, col, hollow) => { const xx = X(k); ctx.beginPath(); ctx.moveTo(xx, yAx - 8); ctx.lineTo(xx + 6, yAx); ctx.lineTo(xx, yAx + 8); ctx.lineTo(xx - 6, yAx); ctx.closePath(); ctx.fillStyle = hollow ? '#fff' : col; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke(); return xx; };
+  const label = (xx, y, s, col) => { const xl = clamp(xx, x0 + 40, x0 + w - 40); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xx, y > yAx ? yAx + 9 : yAx - 9); ctx.lineTo(xl, y > yAx ? y - 11 : y + 3); ctx.stroke(); tag(ctx, xl, y, s, { size: 9.5, align: 'center', color: col, weight: 600 }); };
+  if (st.arr === 'one') { const xx = marker(st.k1, C.ink, false); label(xx, yAx - 16, `*k* = ${kRich(st.k1)}`, C.ink); return; }
+  const x1 = marker(st.k1, C.ink, false), x2 = marker(st.k2, C.ink2, false);
+  const close = Math.abs(x1 - x2) < 70; // two rows when the soils are close on the scale
+  label(x1, yAx - 16 - (close ? 16 : 0), `*k*_{1} = ${kRich(st.k1)}`, C.ink); label(x2, yAx - 16, `*k*_{2} = ${kRich(st.k2)}`, C.ink2);
+  const other = m.series ? m.kPar : m.kSeries; const xo = marker(other, C.rust, true); const xe = marker(m.keq, C.rust, false);
+  label(xe, yAx + 48, `*k*_{eq} ${m.series ? 'in series' : 'in parallel'} = ${kRich(m.keq)}`, C.rust); label(xo, yAx + 64, `${m.series ? 'if in parallel' : 'if in series'}: ${kRich(other)}`, C.rust);
+}
+/* ---------- running the test ---------- */
+function startRun() { const m = calc(); lab.running = true; lab.t = 0; lab.V = 0; lab.trial = null; lab.speed = compression(m); if (st.test === 'falling') lab.h = st.h0; report(); syncRun(); }
+function stopRun() { if (!lab.running) return; lab.running = false; logTrial(); syncRun(); }
+function noiseFactor() { return st.noise ? 1 + (Math.random() - 0.5) * 0.06 : 1; }
+function sampleName() { return st.arr === 'one' ? `one soil, ${fmt(st.L * 1000, 0)} mm` : st.arr === 'series' ? `series ${fmt(st.L1 * 1000, 0)} + ${fmt(st.L2 * 1000, 0)} mm` : `parallel ${fmt(100 * st.f, 0)} / ${fmt(100 * (1 - st.f), 0)} %`; }
+function logTrial() {
+  const m = calc();
+  if (st.test === 'constant') { const V = lab.V * noiseFactor(); const Q = V * 1e-6 / Math.max(lab.t, 1e-9); const v = Q / m.A; lab.trial = { test: 'constant', name: sampleName(), dH: st.dH, L: m.L, i: m.i, V, t: lab.t, Q, v, kEst: v / m.i }; }
+  else { const h1 = lab.h * noiseFactor(); const kEst = a() * m.L / (m.A * Math.max(lab.t, 1e-9)) * Math.log(st.h0 / h1); lab.trial = { test: 'falling', name: sampleName(), h0: st.h0, h1, t: lab.t, L: m.L, kEst, i: (st.h0 + h1) / 2 / m.L, v: kEst * (st.h0 + h1) / 2 / m.L }; }
+  trials.push(lab.trial); fit = fitLine(); report();
+}
+function fitLine() { const pts = trials.filter(t => t.test === 'constant'); if (!pts.length) return null; let sxy = 0, sxx = 0; for (const t of pts) { sxy += t.i * t.v; sxx += t.i * t.i; } return { k: sxy / sxx, n: pts.length }; }
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (lab.running) {
+    const m = calc(); const dl = dt * lab.speed; lab.t += dl;
+    if (st.test === 'constant') { lab.V += m.Q * 1e6 * dl; if (lab.V >= 245) { lab.V = 245; stopRun(); } }
+    else { lab.h = st.h0 * Math.exp(-lab.t / m.tau); if (lab.h <= st.h0 / 4) { lab.h = st.h0 / 4; stopRun(); } }
+    $('#clock').textContent = 'running…'; if (!frame.lastRep || now - frame.lastRep > 400) { frame.lastRep = now; report(); }
+  } else $('#clock').textContent = '';
+  draw(dt); requestAnimationFrame(frame);
+}
+/* ---------- reports ---------- */
+function pct(x) { return fmt(100 * x, x > 0.9995 || x < 0.0005 ? 2 : x > 0.995 || x < 0.005 ? 1 : 0) + '%'; }
+function report() {
+  const s = st, m = calc(); strip(); const last = lab.trial;
+  const arrName = s.arr === 'one' ? 'one soil' : s.arr === 'series' ? 'two layers in series' : 'two layers in parallel';
+  $('#results').innerHTML = `<h2>${s.test === 'constant' ? 'Constant-head test' : 'Falling-head test'} · ${arrName}</h2>
+    <div class="big"><span class="sw bg-total"></span><span class="lab">${s.arr === 'one' ? 'Permeability <span class="eq">k</span>' : 'Equivalent permeability <span class="eq">k<sub>eq</sub></span>'}</span><span class="v c-total">${sci(m.keq, 2)}<small>m/s</small></span>
+    ${s.test === 'constant' ? `<span class="sw bg-water"></span><span class="lab">Gradient <span class="eq">i = h<sub>1</sub>/L</span>${m.series ? ' (whole sample)' : ''}</span><span class="v c-water">${fmt(m.i, 2)}</span>
+      <span class="sw bg-water"></span><span class="lab">Collected so far</span><span class="v c-water">${fmt(lab.V, 0)}<small>mL</small> <small>in ${clockLabel(lab.t)}</small></span>
+      ${last && last.test === 'constant' ? `<span class="sw bg-eff"></span><span class="lab">Last trial <span class="eq">k = Q/(A·i)</span></span><span class="v c-eff">${sci(last.kEst, 2)}<small>m/s</small></span>` : ''}`
+    : `<span class="sw bg-water"></span><span class="lab">Standpipe level <span class="eq">h</span></span><span class="v c-water">${fmt(lab.h, 3)}<small>m</small></span><span class="sw bg-water"></span><span class="lab">Time</span><span class="v c-water">${clockLabel(lab.t)}</span>
+      ${last && last.test === 'falling' ? `<span class="sw bg-eff"></span><span class="lab">Last trial <span class="eq">k = (aL/At)·ln(h<sub>0</sub>/h<sub>1</sub>)</span></span><span class="v c-eff">${sci(last.kEst, 2)}<small>m/s</small></span>` : ''}`}</div>
+    ${s.test === 'constant' && m.t200 > 3600 ? `<div class="status warn">At this rate the cylinder needs ${timeLabel(m.t200)} for 200 mL: use the falling-head test.</div>` : ''}
+    ${s.test === 'falling' ? `<div class="status info">Time constant <span class="eq">τ = aL/(k<sub>eq</sub>A)</span> = ${timeLabel(m.tau)}: the level halves every ${timeLabel(m.tau * Math.log(2))}.${m.tau * Math.log(2) < 20 ? ' Too fast to time by hand: use the constant-head test.' : ''}</div>` : ''}
+    <div class="work">${m.series ? `<div>In series the water crosses both layers, so <span class="eq">v</span> is the same in each and <span class="eq">k<sub>1</sub>i<sub>1</sub> = k<sub>2</sub>i<sub>2</sub></span>: the gradients are in inverse proportion to the permeabilities, <span class="eq">i<sub>1</sub> : i<sub>2</sub> = k<sub>2</sub> : k<sub>1</sub></span> = ${m.ratio >= 1 ? '1 : ' + fmt(m.ratio, m.ratio < 10 ? 1 : 0) : fmt(1 / m.ratio, 1 / m.ratio < 10 ? 1 : 0) + ' : 1'}. Here <span class="eq">i<sub>1</sub></span> = ${fmt(m.i1, 3)} in the ${m.S1.label}, <span class="eq">i<sub>2</sub></span> = ${fmt(m.i2, 3)} in the ${m.S2.label}.</div><div>Each layer's share of the head is its share of the resistance <span class="eq">L/k</span>: ${fmt(m.R1, 0)} s against ${fmt(m.R2, 0)} s, so ${pct(m.share1)} and ${pct(1 - m.share1)}.</div>` : m.par ? `<div>In parallel both layers see the same gradient <span class="eq">i</span> = ${fmt(m.i, 2)} and the flows add in proportion to <span class="eq">k·A</span>: the ${m.S1.label} carries ${pct(m.flow1)} of the water, the ${m.S2.label} ${pct(1 - m.flow1)}.</div>` : `<div><span class="eq">Q = k·A·i</span>: the discharge is proportional to the head and the area, and inversely proportional to the length.</div>`}</div>`;
+  const rows = trials.map((t, k) => `<tr><td>${k + 1}</td><td>${t.test}</td><td>${t.name}</td><td class="n">${t.test === 'constant' ? fmt(t.dH, 2) : fmt(t.h0, 2) + ' → ' + fmt(t.h1, 3)}</td><td class="n">${t.test === 'constant' ? fmt(t.i, 2) : '–'}</td><td class="n">${t.test === 'constant' ? fmt(t.V, 0) + ' mL / ' + clockLabel(t.t) : clockLabel(t.t)}</td><td class="n">${t.test === 'constant' ? sciPlain(t.v, 2) : '–'}</td><td class="n">${sciPlain(t.kEst, 2)}</td></tr>`).join('');
+  $('#trials').innerHTML = `<h2>Lab book</h2>${trials.length ? `<table class="t"><tr><th>#</th><th>test</th><th>sample</th><th class="n">head (m)</th><th class="n">i</th><th class="n">V / t</th><th class="n">v (m/s)</th><th class="n">k<sub>eq</sub> (m/s)</th></tr>${rows}</table>` : '<p class="muted">No trials yet. Set a head, press Run; the trial is logged when the cylinder is full or when you press Stop. The book starts afresh when the sample changes.</p>'}
+    ${fit ? `<div class="work"><div>Best line through the origin: <span class="eq">v = k<sub>eq</sub>·i</span> with <b><span class="eq">k<sub>eq</sub></span> = ${sci(fit.k, 2)} m/s</b> from ${fit.n} constant-head trial${fit.n > 1 ? 's' : ''}. Theory for this sample: ${sci(m.keq, 2)} m/s; the scatter is the ±3% reading error in the controls.</div></div>` : ''}
+    <div class="btnrow"><button class="btn" id="clearTrials" type="button">Clear the lab book</button></div>`;
+  $('#clearTrials').addEventListener('click', () => { trials = []; fit = null; lab.trial = null; report(); });
+  const L1 = m.series ? s.L1 : s.L / 2, L2 = m.series ? s.L2 : s.L / 2, f = m.par ? s.f : 0.5;
+  const kS = (L1 + L2) / (L1 / s.k1 + L2 / s.k2), kP = f * s.k1 + (1 - f) * s.k2;
+  const pairs = [['Medium sand', 1e-4, 'Fine sand', 2e-5, 0.1, 0.1], ['Medium sand', 1e-4, 'Fine sand', 2e-5, 0.15, 0.05], ['Medium sand', 1e-4, 'Silt', 1e-7, 0.1, 0.1], ['Medium sand', 1e-4, 'Silt', 1e-7, 0.18, 0.02], ['Medium sand', 1e-4, 'Clay', 1e-9, 0.195, 0.005], ['Gravel', 1e-2, 'Fine sand', 1e-5, 0.02, 0.18]];
+  $('#workPanel').innerHTML = `<h2>The two formulas, with the current soils</h2>
+    <div class="work"><div>Across the layers (series, ${fmt(L1 * 1000, 0)} + ${fmt(L2 * 1000, 0)} mm): <span class="eq">k<sub>eq</sub> = (L<sub>1</sub> + L<sub>2</sub>) / (L<sub>1</sub>/k<sub>1</sub> + L<sub>2</sub>/k<sub>2</sub>)</span> = ${fmt((L1 + L2) * 1000, 0)} mm / (${fmt(L1 / s.k1, 0)} s + ${fmt(L2 / s.k2, 0)} s) = <b>${sci(kS, 2)} m/s</b></div>
+    <div>Along the layers (parallel, ${fmt(100 * f, 0)}% / ${fmt(100 * (1 - f), 0)}% of the area): <span class="eq">k<sub>eq</sub> = (k<sub>1</sub>A<sub>1</sub> + k<sub>2</sub>A<sub>2</sub>) / A</span> = ${fmt(f, 2)} × ${sciPlain(s.k1, 1)} + ${fmt(1 - f, 2)} × ${sciPlain(s.k2, 1)} = <b>${sci(kP, 2)} m/s</b></div>
+    <div>Ratio along / across = <b>${fmt(kP / kS, kP / kS < 10 ? 2 : 0)}</b>. The series value sits near the tighter soil, the parallel value near the more permeable one: a layered ground is anisotropic by this factor.</div></div>
+    <table class="t"><tr><th>Layer 1</th><th>Layer 2</th><th class="n">lengths (mm)</th><th class="n">series k<sub>eq</sub></th><th class="n">parallel k<sub>eq</sub></th><th class="n">ratio</th></tr>
+    ${pairs.map(([n1, k1, n2, k2, l1, l2]) => { const ks = (l1 + l2) / (l1 / k1 + l2 / k2), kp = (l1 * k1 + l2 * k2) / (l1 + l2); return `<tr><td>${n1} ${sciPlain(k1, 0)}</td><td>${n2} ${sciPlain(k2, 0)}</td><td class="n">${fmt(l1 * 1000, 0)} + ${fmt(l2 * 1000, 0)}</td><td class="n">${sciPlain(ks, 1)}</td><td class="n">${sciPlain(kp, 1)}</td><td class="n">${fmt(kp / ks, kp / ks < 10 ? 1 : 0)}</td></tr>`; }).join('')}</table>
+    <p class="muted" style="margin:8px 0 0">For the parallel column the same lengths are read as shares of the cross-section.</p>`;
+}
+function strip() {
+  const m = calc(), s = st;
+  const third = s.test === 'constant' ? [fmt(m.Q * 1e6, m.Q * 1e6 < 1 ? 3 : 2) + ' <small>mL/s</small>', s.arr === 'one' ? 'discharge Q = k·A·i' : 'discharge Q = k<sub>eq</sub>·A·i'] : [timeLabel(m.tau * Math.log(2)), 'standpipe level halves every'];
+  const fourth = m.series ? [`${pct(m.share1)} / ${pct(1 - m.share1)}`, 'head lost in layer 1 / layer 2'] : m.par ? [`${pct(m.flow1)} / ${pct(1 - m.flow1)}`, 'flow carried by layer 1 / layer 2'] : [fit ? sci(fit.k, 2) + ' <small>m/s</small>' : '–', 'k from your fitted line'];
+  $('#strip').innerHTML = [[sci(m.keq, 1) + ' <small>m/s</small>', s.arr === 'one' ? 'permeability k' : 'equivalent k<sub>eq</sub>', 'c-total'], [s.arr === 'one' ? fmt(s.test === 'constant' ? m.i : lab.h / m.L, 2) : (m.ratio >= 1 ? fmt(m.ratio, m.ratio < 10 ? 1 : 0) + ' : 1' : '1 : ' + fmt(1 / m.ratio, 1 / m.ratio < 10 ? 1 : 0)), s.arr === 'one' ? (s.test === 'constant' ? 'gradient i = h₁/L' : 'gradient now, h/L') : 'k<sub>1</sub> : k<sub>2</sub>', 'c-water'], [third[0], third[1], 'c-eff'], [fourth[0], fourth[1], 'c-water']].map(([v, l, cls]) => `<div><div class="sv ${cls}">${v}</div><div class="sl">${l}</div></div>`).join('');
+}
+/* ---------- controls ---------- */
+const ctls = $('#ctls'); const c = {};
+function newBook() { lab.running = false; lab.t = 0; lab.V = 0; lab.h = st.h0; trials = []; fit = null; lab.trial = null; syncRun(); }
+c.arr = segmented(ctls, { label: 'Sample', value: st.arr, options: [{ label: 'One soil', value: 'one' }, { label: 'Two layers in series (flow across)', value: 'series' }, { label: 'Two in parallel (flow along)', value: 'parallel' }], onInput: v => { st.arr = v; newBook(); syncEnable(); report(); } });
+c.test = segmented(ctls, { label: 'Test', value: st.test, options: [{ label: 'Constant head', value: 'constant' }, { label: 'Falling head', value: 'falling' }], onInput: v => { st.test = v; lab.running = false; lab.t = 0; lab.V = 0; lab.h = st.h0; syncEnable(); syncRun(); report(); } });
+/* permeability picker: a slider over 1-2-5 steps, a typed value, and soil presets */
+function kControl(parent, key, titleEl) {
+  const wrap = dom('div', { class: 'ctl kctl' });
+  const lab = dom('label', { for: key + '-k', html: `Permeability <span class="eq">k<sub>${key === 'k1' ? 1 : 2}</sub></span>` });
+  const num = dom('input', { type: 'text', id: key + '-k', value: sciPlain(st[key], 0), spellcheck: 'false', 'aria-label': 'permeability in metres per second, e.g. 2e-4' });
+  const unit = dom('span', { class: 'unit', text: 'm/s' });
+  const range = dom('input', { type: 'range', min: 0, max: KSEQ.length - 1, step: 1, value: kIndex(st[key]) });
+  const ticks = dom('div', { class: 'ticks' }); ['10⁻¹⁰', '10⁻⁷', '10⁻⁴', '10⁻¹'].forEach(t => ticks.appendChild(dom('span', { text: t })));
+  wrap.append(lab, dom('span', { class: 'num' }, [num, unit]), range, ticks); parent.appendChild(wrap);
+  const presets = dom('div', { class: 'presets' }); parent.appendChild(presets);
+  const pb = PRESETS.map(([name, k]) => { const b = dom('button', { type: 'button', html: `${name} <small>${sciPlain(k, 0)}</small>` }); b.addEventListener('click', () => api.set(k)); presets.appendChild(b); return [k, b]; });
+  const show = () => { const k = st[key]; num.value = sciPlain(k, digits(k) ? 2 : 0); range.value = kIndex(k); pb.forEach(([pk, b]) => b.setAttribute('aria-pressed', Math.abs(pk - k) / k < 1e-9 ? 'true' : 'false')); titleEl.innerHTML = `${soilOf(k).label} · <span class="kval">${kHtml(k)} <small>m/s</small></span>`; };
+  const api = { set: (k, fire = true) => { if (!(k > 0)) { show(); return; } st[key] = clamp(k, 1e-11, 1); show(); if (fire) { newBook(); report(); } }, show, el: wrap };
+  range.addEventListener('input', () => api.set(KSEQ[+range.value]));
+  const typed = () => { const v = parseFloat(num.value.replace(/×10\^?/i, 'e').replace(/[−–]/g, '-')); if (Number.isFinite(v) && v > 0) api.set(v); else show(); };
+  num.addEventListener('change', typed); num.addEventListener('keydown', e => { if (e.key === 'Enter') typed(); });
+  show(); return api;
+}
+const head1 = dom('div', { class: 'layerhead' }, [dom('h2', { id: 'h-l1', text: 'Layer 1' }), dom('span', { class: 'kval', id: 't-l1' })]); ctls.appendChild(head1);
+c.k1 = kControl(ctls, 'k1', $('#t-l1'));
+c.L1 = control(ctls, { id: 'L1', label: 'Length of layer 1 <span class="eq">L<sub>1</sub></span>', min: 5, max: 300, step: 5, value: st.L1 * 1000, unit: 'mm', onInput: v => { st.L1 = v / 1000; newBook(); report(); } });
+c.L = control(ctls, { id: 'L', label: 'Sample length <span class="eq">L</span>', min: 50, max: 400, step: 10, value: st.L * 1000, unit: 'mm', onInput: v => { st.L = v / 1000; newBook(); report(); } });
+const box2 = dom('div'); ctls.appendChild(box2);
+const head2 = dom('div', { class: 'layerhead' }, [dom('h2', { id: 'h-l2', text: 'Layer 2' }), dom('span', { class: 'kval', id: 't-l2' })]); box2.appendChild(head2);
+c.k2 = kControl(box2, 'k2', $('#t-l2'));
+c.L2 = control(box2, { id: 'L2', label: 'Length of layer 2 <span class="eq">L<sub>2</sub></span>', min: 5, max: 300, step: 5, value: st.L2 * 1000, unit: 'mm', onInput: v => { st.L2 = v / 1000; newBook(); report(); } });
+c.f = control(box2, { id: 'f', label: 'Share of the cross-section taken by layer 1', min: 5, max: 95, step: 5, value: st.f * 100, unit: '%', onInput: v => { st.f = v / 100; newBook(); report(); } });
+ctls.appendChild(dom('h2', { text: 'Test settings' }));
+c.dH = control(ctls, { id: 'dH', label: 'Head difference <span class="eq">h<sub>1</sub> − h<sub>2</sub></span>', min: 0.05, max: 1.5, step: 0.05, value: st.dH, unit: 'm', onInput: v => { st.dH = v; report(); } });
+c.h0 = control(ctls, { id: 'h0', label: 'Falling head: starting level <span class="eq">h<sub>0</sub></span>', min: 0.3, max: 1.5, step: 0.05, value: st.h0, unit: 'm', onInput: v => { st.h0 = v; if (!lab.running) lab.h = v; report(); } });
+c.bore = segmented(ctls, { label: 'Standpipe bore', value: st.bore, options: [{ label: '2 mm', value: 2 }, { label: '5 mm', value: 5 }, { label: '10 mm', value: 10 }], onInput: v => { st.bore = v; report(); } });
+c.D = segmented(ctls, { label: 'Sample diameter', value: st.Dmm, options: [{ label: '50 mm', value: 50 }, { label: '100 mm', value: 100 }, { label: '150 mm', value: 150 }], onInput: v => { st.Dmm = v; report(); } });
+const tg = dom('div', { class: 'toggles' }); ctls.appendChild(tg);
+checkbox(tg, { id: 'noise', label: '±3% reading error', value: true, onInput: v => { st.noise = v; } });
+checkbox(tg, { id: 'parts', label: 'Water particles', value: true, onInput: v => { st.particles = v; } });
+const br = dom('div', { class: 'btnrow' }); ctls.appendChild(br);
+const runBtn = button(br, 'Run', () => { if (lab.running) stopRun(); else startRun(); }, 'btn primary');
+button(br, 'Log now', () => { if (lab.running) stopRun(); });
+button(br, 'Fit the line', () => { fit = fitLine(); report(); });
+button(br, 'Swap the layers', () => { const k = st.k1, L = st.L1; st.k1 = st.k2; st.L1 = st.L2; st.k2 = k; st.L2 = L; st.f = Math.round((1 - st.f) * 100) / 100; c.k1.show(); c.k2.show(); c.L1.set(st.L1 * 1000, false); c.L2.set(st.L2 * 1000, false); c.f.set(st.f * 100, false); newBook(); report(); });
+function syncRun() { runBtn.textContent = lab.running ? 'Stop' : 'Run'; }
+function syncEnable() {
+  const con = st.test === 'constant', one = st.arr === 'one', ser = st.arr === 'series', par = st.arr === 'parallel';
+  c.dH.enable(con); c.h0.enable(!con); c.bore.el.classList.toggle('off', con);
+  box2.style.display = one ? 'none' : ''; c.L1.el.style.display = ser ? '' : 'none'; c.L2.el.style.display = ser ? '' : 'none'; c.L.el.style.display = ser ? 'none' : ''; c.f.el.style.display = par ? '' : 'none';
+  $('#h-l1').textContent = one ? 'The soil' : ser ? 'Layer 1 (first)' : 'Layer 1 (top)'; $('#h-l2').textContent = ser ? 'Layer 2 (second)' : 'Layer 2 (bottom)';
+}
+/* ---------- pointer: drag the supply level ---------- */
+canvas.addEventListener('pointerdown', ev => { const [X, Y] = canvasPoint(canvas, ev, W); if (st.test !== 'constant') return; const g = geom(calc()); if (Math.abs(X - g.tankX) < 30 && Math.abs(Y - g.yIn) < 16) { drag = true; canvas.setPointerCapture(ev.pointerId); } });
+canvas.addEventListener('pointermove', ev => { if (!drag) return; const [, Y] = canvasPoint(canvas, ev, W); const g = geom(calc()); c.dH.set(clamp(Math.round((g.yOut - Y) / g.HS * 20) / 20, 0.05, 1.5)); });
+canvas.addEventListener('pointerup', () => { drag = false; });
+/* ---------- predictions ---------- */
+const pr = $('#predicts');
+function setupSample(arr, k1, k2, L1, L2, dH, f = 0.5) { c.arr.set(arr, false); st.arr = arr; c.k1.set(k1, false); c.k2.set(k2, false); if (arr === 'series') { c.L1.set(L1 * 1000, false); c.L2.set(L2 * 1000, false); st.L1 = L1; st.L2 = L2; } else { c.L.set((L1 + L2) * 1000, false); st.L = L1 + L2; } c.f.set(f * 100, false); st.f = f; c.test.set('constant', false); st.test = 'constant'; c.dH.set(dH, false); st.dH = dH; newBook(); syncEnable(); report(); }
+predict(pr, { q: 'A. Two layers in series, 100 mm each: medium sand (k = 1×10⁻⁴ m/s) then fine sand (2×10⁻⁵, five times tighter). What share of the head is lost in the fine sand?', options: ['half of it, 50%', 'five sixths, 83%', 'nearly all of it, 99%'], answer: 1, explain: 'The same water crosses both, so the gradients are in inverse proportion to k: 1 : 5. Equal lengths means the head splits 1 : 5 as well, 17% in the sand and 83% in the fine sand, and the head line is five times steeper in the fine layer. Resistances L/k: 1,000 s against 5,000 s.', setup: () => { setupSample('series', 1e-4, 2e-5, 0.1, 0.1, 0.5); startRun(); } });
+predict(pr, { q: 'B. Same two soils, but now 150 mm of medium sand and only 50 mm of fine sand. The fine sand, a quarter of the length, loses…', options: ['a quarter of the head', 'half of the head', 'about 63% of the head'], answer: 2, explain: 'Resistances L/k: 0.15/10⁻⁴ = 1,500 s for the sand and 0.05/(2×10⁻⁵) = 2,500 s for the fine sand, so the fine sand still takes 2,500/4,000 = 63% of the head across a quarter of the length. Its gradient is five times the sand\'s whatever the lengths; the lengths only decide how much head each one accumulates.', setup: () => { setupSample('series', 1e-4, 2e-5, 0.15, 0.05, 0.5); startRun(); } });
+predict(pr, { q: 'C. The same two soils side by side, half the cross-section each, so the water runs along both. The medium sand carries…', options: ['half the water', 'five sixths of it, 83%', 'practically all of it'], answer: 1, explain: 'In parallel every layer sees the same gradient, so the flows are in proportion to k·A: 5 : 1. The sand carries 83%, and k_eq = (10⁻⁴ + 2×10⁻⁵)/2 = 6×10⁻⁵: a plain average, pulled towards the open soil. In series the same pair gave 3.3×10⁻⁵, pulled towards the tight one.', setup: () => { setupSample('parallel', 1e-4, 2e-5, 0.1, 0.1, 0.5, 0.5); startRun(); } });
+predict(pr, { q: 'D. Medium sand and silt (10⁻⁷), 100 mm each in series: k_eq = 2×10⁻⁷. Turn the same sample so the water flows along the layers instead. k_eq becomes…', options: ['the same', 'about 25 times higher', 'about 250 times higher'], answer: 2, explain: 'Along the layers the flows add: k_eq = (10⁻⁴ + 10⁻⁷)/2 ≈ 5×10⁻⁵, with the sand carrying 99.9% of the water. Across them the resistances add and the silt controls: 2×10⁻⁷. Same two soils, a factor of 250 between the two directions. Watch the stopwatch: the series run takes the best part of a day, the parallel run four minutes.', setup: () => { setupSample('series', 1e-4, 1e-7, 0.1, 0.1, 0.5); startRun(); setTimeout(() => { setupSample('parallel', 1e-4, 1e-7, 0.1, 0.1, 0.5, 0.5); startRun(); }, 9500); } });
+predict(pr, { q: 'E. A 200 mm sand sample (10⁻⁴) with a 5 mm clay seam (10⁻⁹) across it. Compared with clean sand, the flow through the sample drops…', options: ['by about 2.5%', 'by about half', 'by a factor of thousands'], answer: 2, explain: 'Series: 0.195/10⁻⁴ = 1,950 s for the sand against 0.005/10⁻⁹ = 5,000,000 s for the seam. k_eq ≈ 4×10⁻⁸, some 2,500 times lower than the sand, and 99.96% of the head is lost in the seam. One undetected clay seam decides whether a foundation drains, which is why permeability samples are taken with the layering in mind.', setup: () => { setupSample('series', 1e-4, 1e-9, 0.195, 0.005, 0.5); startRun(); } });
+/* ---------- start ---------- */
+syncEnable(); report(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
